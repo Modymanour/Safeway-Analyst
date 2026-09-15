@@ -16,8 +16,8 @@ service:
       timeout: 5s,
       retries: 10
   
-  analyst:
-    build: .
+  api:
+    build: ./api
     restart: unless-stopped
     ports:
       - "4000:4000"
