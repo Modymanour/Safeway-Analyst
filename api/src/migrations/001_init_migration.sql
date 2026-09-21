@@ -1,7 +1,7 @@
 -- Migration: 001_init_migration.sql
 -- Creating initial tables for the dashboard application with indexes and triggers for updating the columns
 
-Begin
+BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TYPE TrafficSource AS ENUM ('organic', 'paid', 'referral', 'social', 'direct');
+
 CREATE TABLE IF NOT EXISTS user_visits_stats(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email_click BOOLEAN NOT NULL,
@@ -44,10 +46,10 @@ CREATE TABLE IF NOT EXISTS user_visits_stats(
     phone_click BOOLEAN NOT NULL,
     time_on_page INTEGER NOT NULL,
     device_type TEXT NOT NULL,
-    traffic_source TEXT NOT NULL,
+    traffic_source TrafficSource NOT NULL,
     location TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-)
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
 -- ######################## 
 -- Comments
@@ -94,3 +96,5 @@ CREATE INDEX idx_device_type ON user_visits_stats(device_type);
 CREATE INDEX idx_traffic_source ON user_visits_stats(traffic_source);
 
 CREATE INDEX idx_location ON user_visits_stats(location);
+
+COMMIT;
