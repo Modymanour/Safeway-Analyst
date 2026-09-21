@@ -17,9 +17,16 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "moment": "^2.31.0",
+    "path": "^0.12.7",
     "pg": "^8.23.0",
     "swagger-ui-express": "^5.0.1",
     "typescript": "^7.0.2",
+    "umzug": "^3.8.3",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/pg": "^8.23.1"
   }
 }
