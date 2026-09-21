@@ -16,6 +16,7 @@ var parseFl = (val:string) => {
 types.setTypeParser(types.builtins.TIMESTAMPTZ, parseFn);
 types.setTypeParser(types.builtins.TIMESTAMP, parseFn)
 types.setTypeParser(types.builtins.INT4, parseIn)
+types.setTypeParser(types.builtins.INT8, parseIn)
 types.setTypeParser(types.builtins.FLOAT8, parseFl);
 
 //for console logging to remove extra sql stuff

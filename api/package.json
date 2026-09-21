@@ -5,7 +5,7 @@
   "main": "./src/app.ts",
   "scripts": {
     "start": "npm run db:migrate && tsx ./src/app.ts",
-    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "test": "vitest --watch",
     "test:integration": "TEST_DATABASE_URL=\"${TEST_DATABASE_URL:-$POSTGRESQL_CONNECTION_STRING}\" node --import tsx --test test/integration.test.ts",
     "db:migrate": "tsx src/db/migrate.ts up",
     "db:migrate:status": "tsx src/db/migrate.ts status"
@@ -26,10 +26,13 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.2",
     "@types/pg": "^8.23.1",
     "@types/swagger-ui-express": "^4.1.8",
-    "tsx": "^4.23.15"
+    "testcontainers": "^12.1.0",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.1"
   }
 }
