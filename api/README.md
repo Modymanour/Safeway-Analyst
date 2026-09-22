@@ -54,6 +54,75 @@ src/
 
 ## Database Schema
 
+The database schema can be either seen from the erd diagram of the system in diagrams folder or through the initial & first migration of the system
+
+### Tables
+
+#### `users`
+
+Stores dashboard user accounts.
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key|
+| `username` | `TEXT` | Required and unique |
+| `email` | `TEXT` | Required and unique |
+| `password` | `TEXT` | Required |
+| `role` | `TEXT` | Required |
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+| `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
+
+#### `refresh_tokens`
+
+Stores refresh tokens associated with users.
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key|
+| `user_id` | `UUID` | References `users.id`; Cascades |
+| `token` | `TEXT` | Required |
+| `expires_at` | `TIMESTAMP` | Required expiration time |
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+| `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
+
+#### `password_reset_tokens`
+
+Stores password-reset tokens associated with users.
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key |
+| `user_id` | `UUID` | References `users.id`; Cascades|
+| `token` | `TEXT` | Required |
+| `expires_at` | `TIMESTAMP` | Required expiration time |
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+| `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
+
+#### `user_visits_stats`
+
+Stores website visit and interaction statistics.
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key|
+| `email_click` | `BOOLEAN` | Required |
+| `whatsapp_click` | `BOOLEAN` | Required |
+| `phone_click` | `BOOLEAN` | Required |
+| `time_on_page` | `INTEGER` | Required |
+| `device_type` | `TEXT` | Required |
+| `traffic_source` | `TrafficSource` | Required enum value |
+| `location` | `TEXT` | Required |
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+
+### Enum
+
+`TrafficSource` accepts the following values:
+
+- `organic`
+- `paid`
+- `referral`
+- `social`
+- `direct`
 
 ## Api Reference
 
@@ -61,3 +130,29 @@ src/
 | :--- | :--- | :--- | :--- | :--- |
 
 ## Tests
+
+Requirements:
+
+- Vitest
+- testcontainers (postgreql)
+
+Currently, there exists 4 test files for the repositories in the system.
+
+### Global configuration
+
+global-setup.ts sets up a Postgresql container and runs system migraitions on it; when a file runs tests, it can extract a pool client from the global setup and run it.
+
+### Setup configuration
+setup.ts configures the connection string to be used, import the backend pool module and set types for returning data from Postgres
+
+### Tools
+tools.ts contains functions for creating any kind of entities needed in the tests.
+
+### Running Tests
+You can run the tests using the already setup script in package.json => test: vitest run
+
+```bash
+npm test
+```
+
+This will run all the tests in the system
