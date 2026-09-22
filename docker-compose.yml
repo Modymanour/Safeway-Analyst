@@ -1,4 +1,4 @@
-service:
+services:
   db:
     image: postgres:16
     restart: unless-stopped
@@ -12,8 +12,8 @@ service:
       - postgres_data:/var/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s,
-      timeout: 5s,
+      interval: 5s
+      timeout: 5s
       retries: 10
   
   api:
@@ -28,5 +28,5 @@ service:
         condition: service_healthy
         restart: true
 
-  volume:
-    postgres_data:
+volumes:
+  postgres_data:
