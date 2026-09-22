@@ -1,6 +1,6 @@
 import { UUID } from "crypto";
 import { Queryable, query, queryOne, queryRows } from "../db/pool.ts";
-import {PaginatedResult} from"./types.ts";
+import { PaginatedResult } from"./types.ts";
 ;
 export interface UserVisitStatsRow{
     id: UUID,

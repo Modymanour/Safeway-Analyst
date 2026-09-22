@@ -37,10 +37,11 @@ beforeAll(async () => {
 }, 120000);
 
 afterAll(async () => {
+    pool.end();
     await container.stop();
 }, 120000);
 
-describe("User Visit Stats Repository", () => {
+describe("User Visit Stats Repository tests", () => {
     beforeEach(async () => {
         const client = await pool.connect();
         client.query("DELETE FROM user_visits_stats");
@@ -67,7 +68,7 @@ describe("User Visit Stats Repository", () => {
         expect(result.id).toBeDefined();
         expect(result.created_at).toBeDefined();
         expect(typeof result.time_on_page).toBe("number");
-        await client.end();
+        client.release();
     });
 
     it("should return error for unknown traffic source", async () => {
@@ -85,7 +86,7 @@ describe("User Visit Stats Repository", () => {
 
         const result = await repository.create(client, input).catch((err: Error) => err);
         expect(result).toBeInstanceOf(Error);
-        await client.end();
+        client.release();
     });
 
     it("should get saved user visit event", async () => {
@@ -94,7 +95,7 @@ describe("User Visit Stats Repository", () => {
         const created = await createUserStatsData(client, 1).then((data) => data[0]);
         const fetched = await repository.getById(client, created.id);
         expect(fetched).toMatchObject(created);
-        await client.end();
+        client.release();
     });
 
     it("should return null for non-existing user visit event", async () => {
@@ -102,7 +103,7 @@ describe("User Visit Stats Repository", () => {
 
         const fetched = await repository.getById(client, "00000000-0000-0000-0000-000000000000");
         expect(fetched).toBeNull();
-        await client.end();
+        client.release();
     });
 
     it("should update an existing user visit event", async () => {
@@ -122,7 +123,7 @@ describe("User Visit Stats Repository", () => {
         const updated = await repository.update(client, created.id, updateInput);
         expect(updated).toMatchObject(updateInput);
         expect(updated.id).toBe(created.id);
-        await client.end();
+        client.release();
     });
 
     it("should delete an existing user visit event", async () => {
@@ -132,7 +133,7 @@ describe("User Visit Stats Repository", () => {
         await repository.delete(client, created.id);
         const fetched = await repository.getById(client, created.id);
         expect(fetched).toBeNull();
-        await client.end();
+        client.release();
     });
 
     it("should search user visit events with filters and pagination", async () => {
@@ -160,7 +161,7 @@ describe("User Visit Stats Repository", () => {
 
         const resultpag = await repository.search(client, filters, 0, 0);
         expect(resultpag.data.length).toBeGreaterThan(5);
-        await client.end();
+        client.release();
     });
 });
 
