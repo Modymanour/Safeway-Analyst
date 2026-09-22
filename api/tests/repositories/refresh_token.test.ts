@@ -1,9 +1,9 @@
 import { beforeEach, afterEach, describe, expect, test } from "vitest";
 import type { PoolClient } from "pg";
-import { createUser, createToken } from "./tools.ts";
-import { pool } from "./setup.ts";
-import { RefreshTokenRepository } from "../src/repositories/refresh_token.repository.ts";
-import { UserRepository } from "../src/repositories/user.repository.ts";
+import { createUser, createToken } from "../tools.ts";
+import { pool } from "../setup.ts";
+import { RefreshTokenRepository } from "../../src/repositories/refresh_token.repository.ts";
+import { UserRepository } from "../../src/repositories/user.repository.ts";
 
 let repository: RefreshTokenRepository;
 let userRepo: UserRepository;
@@ -39,7 +39,7 @@ describe("Refresh Token Repository tests", () => {
 
     test("should update a existing refresh token", async () => {
         const user = await createUser(client, userRepo, 1).then((data) => data[0]);
-        const result = await createToken(client, repository, user.id).then((data) => data[0])
+        const result = await createToken(client, repository, user.id);
         const updateInput = {
             token: `updatedToken`,
             expires_at: new Date(Date.now() + 2000 * 60 * 60), // 2 hour from now
@@ -52,7 +52,7 @@ describe("Refresh Token Repository tests", () => {
 
     test("should delete an existing refresh token", async () =>{
         const user = await createUser(client, userRepo, 1).then((data) => data[0]);
-        const result = await createToken(client, repository, user.id).then((data) => data[0]);
+        const result = await createToken(client, repository, user.id);
 
         const deleteResult = await repository.delete(client, result.id);
         expect(deleteResult).toBeUndefined();

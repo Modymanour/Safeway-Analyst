@@ -1,21 +1,23 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { createUser } from "./tools.ts";
-import { pool } from "./setup.ts";
+import { createUser } from "../tools.ts";
+import { PoolClient } from "pg";
+import { pool } from "../setup.ts";
+import { UserRepository } from "../../src/repositories/user.repository.ts";
+import { afterEach } from "node:test";
 
-let repository: any;
-
-const { UserRepository } = await import("../src/repositories/user.repository.ts");
-repository = new UserRepository();
+let repository = new UserRepository();
+let client: PoolClient;
 
 describe("Dashboard User Repository tests", () => {
     beforeEach(async () => {
-        const client = await pool.connect();
+        client = await pool.connect();
         await client.query("DELETE FROM users");
-        client.release();
     });
+    afterEach(async () => {
+        client.release();
+    })
 
     test("should create a new user record", async () => {
-        const client = await pool.connect();
 
         const input = {
             username: "testuser",
@@ -29,12 +31,9 @@ describe("Dashboard User Repository tests", () => {
         expect(result.email).toBe(input.email);
         expect(result.password).toBe(input.password);
         expect(result.role).toBe(input.role);
-
-        client.release();
     })
 
     test("should update an existing user record", async () => {
-        const client = await pool.connect();
 
         const result = await createUser(client, repository, 1).then((data) => data[0]);
         const updatedInput = {
@@ -49,23 +48,17 @@ describe("Dashboard User Repository tests", () => {
         expect(updatedResult!.email).toBe(updatedInput.email);
         expect(updatedResult!.password).toBe(updatedInput.password);
         expect(updatedResult!.role).toBe(updatedInput.role);
-
-        client.release();
     })
 
     test("should delete an existing user record", async () => {
-        const client = await pool.connect();
 
         const result = await createUser(client, repository, 1).then((data) => data[0]);
         await repository.delete(client, result.id);
         const deletedResult = await repository.getById(client, result.id);
         expect(deletedResult).toBeNull();
-
-        client.release();
     })
 
     test("should search for user records with filters", async () => {
-        const client = await pool.connect();
 
         await createUser(client, repository, 5);
         const filters = {
@@ -76,8 +69,6 @@ describe("Dashboard User Repository tests", () => {
         const searchResult = await repository.search(client, filters, 1, 10);
         expect(searchResult).toHaveProperty("total");
         expect(searchResult.data.length).toBe(0);
-
-        client.release();
     })
 })
 

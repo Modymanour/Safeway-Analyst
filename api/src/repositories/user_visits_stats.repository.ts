@@ -18,6 +18,7 @@ const USER_VISIT_STATS_COLUMNS = `
     id, email_click, whatsapp_click, phone_click, time_on_page, device_type, traffic_source, location, created_at`;
 
 export class UserVisitsStatsRepository {
+    constructor () {}
     async create(
         db: Queryable,
         input:{

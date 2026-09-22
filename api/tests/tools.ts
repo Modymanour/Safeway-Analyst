@@ -3,6 +3,7 @@ import { Queryable } from "../src/db/pool";
 import { UserRepository } from "../src/repositories/user.repository";
 import { UserVisitsStatsRepository} from "../src/repositories/user_visits_stats.repository";
 import { RefreshTokenRepository } from "../src/repositories/refresh_token.repository";
+import { PasswordTokenRepository } from "../src/repositories/password_token.repository";
 
 
 export const createUser = async (db: Queryable,repository:UserRepository, counter: number) => {
@@ -39,12 +40,19 @@ export const createUserStatsData = async (client: Queryable, repository:UserVisi
 };
 
 export const createToken = async (db: Queryable, repository:RefreshTokenRepository, user_id: UUID) => {
-    const data = []
     const input = {
         user_id: user_id,
         token: `testToken`,
         expires_at: new Date(Date.now() + 1000 * 60 * 60), // 1 hour from now
     }
-    data.push(await repository.create(db, input))
-    return data; 
-}
+    return await repository.create(db, input)
+};
+
+export const createPasswordToken = async (db: Queryable, repository:PasswordTokenRepository, user_id: UUID) => {
+    const input = {
+        user_id: user_id,
+        token: `testToken`,
+        expires_at: new Date(Date.now() + 1000 * 60 * 60), // 1 hour from now
+    };
+    return await repository.create(db, input);
+};
