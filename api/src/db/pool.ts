@@ -1,7 +1,6 @@
 import { Pool, PoolClient, QueryResult, QueryResultRow, types } from 'pg';
 import moment from 'moment';
-import dotenv from 'dotenv';
-import path from 'node:path';
+import { env } from '../config/env';
 
 //Adjusting data types coming for postgres so they are not strings but rather their original datatype
 var parseFn = (val:string) => {
@@ -24,10 +23,7 @@ function collapse(sql: string): string {
   return sql.replace(/\s+/g, ' ').trim().slice(0, 300);
 }
 
-const directoryPath = import.meta.dirname
-dotenv.config({ path: path.resolve(directoryPath, '../config/.env') });
-
-const connectionString = process.env.POSTGRESQL_CONNECTION_STRING;
+const connectionString = env.POSTGRESQL_CONNECTION_STRING;
 
 if (!connectionString) {
     throw new Error('POSTGRESQL_CONNECTION_STRING is not configured');
