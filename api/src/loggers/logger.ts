@@ -28,8 +28,3 @@ export const logger = pino({
     },
     timestamp: () => `,"time":"${new Date(Date.now()).toISOString()}"`
 });
-
-logger.debug({ operation: "create-user" }, "creating user");
-logger.info({ service: "safeway-api" }, "server started");
-logger.warn( "slow query");
-logger.error({operation: "create-user" }, "database operation failed");

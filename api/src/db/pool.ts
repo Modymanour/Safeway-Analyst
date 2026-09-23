@@ -1,6 +1,11 @@
 import { Pool, PoolClient, QueryResult, QueryResultRow, types } from 'pg';
 import moment from 'moment';
 import { env } from '../config/env';
+import { logger } from "../loggers/logger.ts"
+
+const log = logger.child({
+    component: "pool"
+})
 
 //Adjusting data types coming for postgres so they are not strings but rather their original datatype
 var parseFn = (val:string) => {
@@ -29,25 +34,37 @@ if (!connectionString) {
     throw new Error('POSTGRESQL_CONNECTION_STRING is not configured');
 }
 
-console.log(`Connecting to postgres using connection string: ${connectionString}`);
 
-export const pool = new Pool({
-    connectionString,
+const config = {
+    connectionString: connectionString,
     application_name: 'safeway-analyst',
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000
+}
+
+export const pool = new Pool({
+    connectionString: config.connectionString,
+    application_name: config.application_name,
+    max: config.max,
+    idleTimeoutMillis: config.idleTimeoutMillis,
+    connectionTimeoutMillis: config.connectionTimeoutMillis
 });
 
-console.log(`Connection using\nconnection string:${connectionString}\napplication_name: safeway analyst\nmax: 10\n
-    idleTimeoutMillis:30_000\nconnectionTImeoutMillis:5_000\ncompleted successfully`);
+log.debug({
+    connectionString: config.connectionString,
+    application_name: config.application_name,
+    max: config.max,
+    idleTimeoutMillis: config.idleTimeoutMillis,
+    connectionTimeoutMillis: config.connectionTimeoutMillis
+});
 
 pool.on('error', (error) => {
-    console.error('Unexpected PostgreSQL pool error', error);
+    log.error(error,'Unexpected PostgreSQL pool error');
 });
 
 pool.on('connect', () => {
-    console.log({total: pool.totalCount, idle: pool.idleCount}, 'Postgres client connected');
+    log.info({total: pool.totalCount, idle: pool.idleCount}, 'Postgres client connected');
 })
 
 const SLOW_QUERY_MS = 1000;

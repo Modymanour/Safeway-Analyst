@@ -1,7 +1,12 @@
 import { UUID } from "crypto";
 import { Queryable, query, queryOne, queryRows } from "../db/pool.ts";
 import { PaginatedResult } from"./types.ts";
-;
+import { logger } from "../loggers/logger.ts";
+
+const log = logger.child({
+    component: "user_visit_stats_repository",
+})
+
 export interface UserVisitStatsRow{
     id: UUID,
     email_click: boolean,
@@ -13,6 +18,7 @@ export interface UserVisitStatsRow{
     location: string,
     created_at: Date,
 };
+
 
 const USER_VISIT_STATS_COLUMNS = `
     id, email_click, whatsapp_click, phone_click, time_on_page, device_type, traffic_source, location, created_at`;
@@ -46,6 +52,12 @@ export class UserVisitsStatsRepository {
                 input.location
             ]
         );
+        log.debug({
+            action: "create",
+            data: input,
+            msg: "success"
+        });
+
         return result!;
     }
 
@@ -85,6 +97,12 @@ export class UserVisitsStatsRepository {
                 id
             ]
         );
+        log.debug({
+            action: "update",
+            data: input,
+            msg: "success"
+        });
+
         return result!;
     }
     async delete(
@@ -96,6 +114,11 @@ export class UserVisitsStatsRepository {
             `DELETE FROM user_visits_stats WHERE id = $1`,
             [id]
         );
+        log.debug({
+            action: "delete",
+            id: id,
+            msg: "success"
+        });
     }
     async getById(
         db: Queryable,
@@ -106,6 +129,11 @@ export class UserVisitsStatsRepository {
             `SELECT ${USER_VISIT_STATS_COLUMNS} FROM user_visits_stats WHERE id = $1`,
             [id]
         );
+        log.debug({
+            action: "get by id",
+            id: id,
+            msg: result ? "successful": "not found"
+        });
         return result ?? null;
     }
     //Search function with filters
@@ -191,7 +219,6 @@ export class UserVisitsStatsRepository {
         } else {
             offsetClause = '';
         }
-        values.forEach((value, i) => console.log(`$${i + 1}: ${value}`));
         const rows = await queryRows<UserVisitStatsRow>(
             db,
             `SELECT ${USER_VISIT_STATS_COLUMNS} FROM user_visits_stats ${whereClause} ORDER BY created_at DESC ${limitClause} ${offsetClause}`,
@@ -206,6 +233,15 @@ export class UserVisitsStatsRepository {
             total,
             totalPages
         };
+
+        log.debug({
+            action: "search user visits",
+            filters: filters,
+            page: page,
+            pageNumber: pageSize,
+            data_count: result.total,
+            msg: "success"
+        });
         return result;
     }
 
@@ -232,6 +268,13 @@ export class UserVisitsStatsRepository {
             total,
             totalPages
         };
+        log.debug({
+            action: "get all user visits",
+            page: page,
+            pageSize: pageSize,
+            data_count: result.total,
+            msg: "success"
+        });
         return result;
     }
 }

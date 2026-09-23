@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 4000
 
-CMD ["npm", "start", "| pino-pretty"]
+CMD ["npm", "start"]
