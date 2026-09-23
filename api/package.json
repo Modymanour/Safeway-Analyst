@@ -5,7 +5,8 @@
   "main": "./src/app.ts",
   "scripts": {
     "start": "npm run db:migrate && tsx ./src/app.ts",
-    "test": "vitest run",
+    "start:pretty": "npm run db:migrate && tsx src/app.ts | pino-pretty",
+    "test": "vitest run | pino-pretty",
     "test:integration": "TEST_DATABASE_URL=\"${TEST_DATABASE_URL:-$POSTGRESQL_CONNECTION_STRING}\" node --import tsx --test test/integration.test.ts",
     "db:migrate": "tsx src/db/migrate.ts up",
     "db:migrate:status": "tsx src/db/migrate.ts status"
@@ -20,6 +21,8 @@
     "moment": "^2.31.0",
     "path": "^0.12.7",
     "pg": "^8.23.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
     "swagger-ui-express": "^5.0.1",
     "typescript": "^7.0.2",
     "umzug": "^3.8.3",

@@ -1,7 +1,11 @@
 import { UUID } from "crypto";
 import { Queryable, query, queryOne, queryRows } from "../db/pool.ts";
 import { PaginatedResult } from"./types.ts";
+import { logger } from "../loggers/logger.ts";
 
+const log = logger.child({
+    component: "refresh_token_repository"
+})
 export interface RefreshTokenRow {
     id: UUID,
     user_id: UUID,
@@ -36,6 +40,11 @@ export class RefreshTokenRepository {
                 input.expires_at
             ]
         );
+        log.debug({
+            action: "create",
+            data: input,
+            msg: "success"
+        })
         return result!;
     }
 
@@ -60,6 +69,10 @@ export class RefreshTokenRepository {
                 id
              ]
         );
+        log.debug({
+            action: "update",
+            data: input
+        }, result ? "success": "not found")
         return result ?? null;
     }
 
@@ -72,6 +85,11 @@ export class RefreshTokenRepository {
             `DELETE FROM refresh_tokens WHERE id = $1`,
             [id]
         );
+        log.debug({
+            action: "delete",
+            id: id,
+            msg: "success"
+        });
     }
 
     async getById(
@@ -83,6 +101,11 @@ export class RefreshTokenRepository {
             `SELECT ${REFRESH_TOKEN_COLUMNS} FROM refresh_tokens WHERE id = $1`,
             [id]
         );
+        log.debug({
+            action: "get by id",
+            id: id,
+            msg: result ? "successful": "not found"
+        });
         return result ?? null;
     }
 
@@ -95,6 +118,11 @@ export class RefreshTokenRepository {
             `SELECT ${REFRESH_TOKEN_COLUMNS} FROM refresh_tokens WHERE token = $1`,
             [token]
         );
+        log.debug({
+            action: "get by id",
+            token: token,
+            msg: result ? "successful": "not found"
+        });
         return result ?? null;
     }
 
@@ -107,6 +135,52 @@ export class RefreshTokenRepository {
             `SELECT ${REFRESH_TOKEN_COLUMNS} FROM refresh_tokens WHERE user_id = $1`,
             [user_id]
         );
+        log.debug({
+            action: "get by id",
+            id: user_id,
+            msg: result ? "successful": "not found"
+        });
         return result ?? null;
+    }
+    async getAll(
+        db: Queryable,
+        page: number,
+        pageSize: number
+    ): Promise<PaginatedResult<RefreshTokenRow>>{
+        const offset = (page - 1) * pageSize;
+        const limitClause = pageSize > 0 ? `LIMIT ${pageSize}` : '';
+        const offsetClause = page > 0 ? `OFFSET ${offset}` : '';
+
+        const totalRow = await queryOne<{ total: number }>(
+            db,
+            `SELECT COUNT(*) AS total FROM refresh_tokens`
+        );
+
+        const rows = await queryRows<RefreshTokenRow>(
+            db,
+            `SELECT ${REFRESH_TOKEN_COLUMNS} FROM refresh_tokens ORDER BY created_at DESC ${limitClause} ${offsetClause}`,
+            []
+        );
+
+        const total = totalRow?.total ?? 0;
+        const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 1;
+
+        const result = {
+            data: rows,
+            page: page,
+            pageSize: pageSize,
+            total: total,
+            totalPages: totalPages
+        }
+
+        log.debug({
+            action: "get all refresh tokens",
+            page: page,
+            pageSize: pageSize,
+            data_count: result.total,
+            msg: "success"
+        });
+
+        return result;
     }
 }

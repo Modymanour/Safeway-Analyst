@@ -1,6 +1,11 @@
 import { UUID } from "crypto";
 import { Queryable, query, queryOne, queryRows } from "../db/pool.ts";
 import { PaginatedResult } from"./types.ts";
+import { logger } from "../loggers/logger.ts";
+
+const log = logger.child({
+    component: "user_repository",
+})
 
 export interface UserRow{
     id: UUID,
@@ -38,6 +43,11 @@ export class UserRepository {
                 input.role
             ]
         );
+        log.debug({
+            action: "create",
+            data: input,
+            msg: "success"
+        });
         return result!;
     }
     async update(
@@ -71,6 +81,12 @@ export class UserRepository {
             `UPDATE users SET ${setClauses.join(", ")}, updated_at = now() WHERE id = $${index} RETURNING ${USER_COLUMNS}`,
             [...values, id]
         );
+        log.debug({
+            action: "update",
+            id: id,
+            data: input,
+            msg: result ? "successful": "not found"
+        });
         return result ?? null;
     }
     async delete(
@@ -82,6 +98,27 @@ export class UserRepository {
             `DELETE FROM users WHERE id = $1`,
             [id]
         );
+        log.debug({
+            action: "delete",
+            id: id,
+            msg: "success"
+        });
+    }
+    async getById(
+        db: Queryable,
+        id: UUID
+    ): Promise<UserRow | null>{
+        const result = await queryOne<UserRow>(
+            db,
+            `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`,
+            [id]
+        );
+        log.debug({
+            action: "get by id",
+            id: id,
+            msg: result ? "successful": "not found"
+        });
+        return result ?? null;
     }
     async search(
         db: Queryable,
@@ -145,25 +182,26 @@ export class UserRepository {
         const total = totalRow?.total ?? 0;
         const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 1;
 
-        return {
+        const result = {
             data: rows,
-            page,
-            pageSize,
-            total,
-            totalPages
-        };
+            page: page,
+            pageSize: pageSize,
+            total: total,
+            totalPages: totalPages
+        }
+
+        log.debug({
+            action: "search users",
+            filters: filters,
+            page: page,
+            pageNumber: pageSize,
+            data_count: result.total,
+            msg: "success"
+        });
+
+        return result
     }
-    async getById(
-        db: Queryable,
-        id: UUID
-    ): Promise<UserRow | null>{
-        const result = await queryOne<UserRow>(
-            db,
-            `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`,
-            [id]
-        );
-        return result ?? null;
-    }
+    
 
     async getByEmail(
         db: Queryable,
@@ -174,6 +212,11 @@ export class UserRepository {
             `SELECT ${USER_COLUMNS} FROM users WHERE email = $1`,
             [email]
         );
+        log.debug({
+            action: "get by email",
+            email: email,
+            msg: result ? "successful": "not found"
+        });
         return result ?? null;
     }
 
@@ -200,12 +243,22 @@ export class UserRepository {
         const total = totalRow?.total ?? 0;
         const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 1;
 
-        return {
+        const result = {
             data: rows,
-            page,
-            pageSize,
-            total,
-            totalPages
-        };
+            page: page,
+            pageSize: pageSize,
+            total: total,
+            totalPages: totalPages
+        }
+
+        log.debug({
+            action: "get all users",
+            page: page,
+            pageSize: pageSize,
+            data_count: result.total,
+            msg: "success"
+        });
+
+        return result;
     }
 }
