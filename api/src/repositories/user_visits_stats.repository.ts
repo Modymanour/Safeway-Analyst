@@ -1,7 +1,7 @@
 import { UUID } from "crypto";
 import { Queryable, query, queryOne, queryRows } from "../db/pool.ts";
 import { PaginatedResult } from"./types.ts";
-import { logger } from "../loggers/logger.ts";
+import { logger } from "../lib/loggers/logger.ts";
 
 const log = logger.child({
     component: "user_visit_stats_repository",
