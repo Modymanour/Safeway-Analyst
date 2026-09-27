@@ -1,4 +1,3 @@
-import type { UUID } from 'node:crypto';
 import { pool, type Queryable } from '../db/pool.ts';
 import { UserVisitsStatsRepository, type UserVisitStatsData, type UserVisitStatsRow } from '../repositories/user_visits_stats.repository.ts';
 import { NotFoundError,ValidationError } from '../lib/errors/errors.ts';
@@ -87,6 +86,7 @@ export class DashboardService{
         log.info({
             action: "get_current_year_range_data",
             msg: "Successful month range returned",
+            status: "Successful",
             response: response,
             start_date: year_range.start,
             end_Date: year_range.end
@@ -132,6 +132,7 @@ export class DashboardService{
         log.info({
             action: "get_current_month_data",
             msg: "Successful month range returned",
+            status: "Success",
             response: response,
             start_date: month_data.start_date,
             end_Date: month_data.end_date
@@ -153,14 +154,16 @@ export class DashboardService{
         month_number: number
     ): Promise<Http_Response<MonthData>>{
         //1
-        if(month_number > 12 || month_number <= 0){
-            throw new ValidationError("Invalid month Number given");
-        }
-        //2
         if (!isValidMonth(year, month_number)) {
+            log.error({
+                action: "get_custom_month_data",
+                msg: `Invalid month number given; year: ${year}, month_number: ${month_number}`,
+                status: "Validation_Error",
+            })
             throw new ValidationError("Invalid month Number given");
         }
 
+        //2
         const range = {
             start_date: new Date(year, month_number - 1, 1),
             end_date: new Date(year, month_number, 1),
@@ -199,11 +202,10 @@ export class DashboardService{
     // Has the following steps:
     // 1 - check data validity
     // 2 - get the dates for the custom month ranges
-    // 3 - get the data the months
-    // 4 - project them onto the monthsData
-    // 5 - project them onto the monthsComparison
-    // 6 - return http_response
-    // 7 - log the data
+    // 3 - get the data the months & project them to monthsData
+    // 4 - project them onto the monthsComparison
+    // 5 - return http_response
+    // 6 - log the data
     async getCustomMonthRangeData(
         start_year: number,
         start_month: number,
@@ -215,6 +217,11 @@ export class DashboardService{
             || !isValidMonth(end_year, end_month)
             || start_year > end_year
             || (start_year === end_year && start_month > end_month)) {
+            log.error({
+                action: "get_custom_month_range_data",
+                msg: `Invalid data given; start_year: ${start_year}, start_month: ${start_month}, end_year: ${end_year}, end_month: ${end_month}`,
+                status: "Validation_Error",
+            })
             throw new ValidationError("Invalid month Number data given");
         }
         //2
@@ -251,6 +258,7 @@ export class DashboardService{
         log.info({
             action: "get_custom_month_range_data",
             msg: "Successful month range returned",
+            status: "Successful",
             response: response,
             start_date: range.start_date,
             end_Date: range.end_date
@@ -275,11 +283,21 @@ export class DashboardService{
     ): Promise<Http_Response<MonthsComparison>>{
         //1
         if (months_numbers.length === 0) {
+            log.error({
+                action: "get_specific_month_data",
+                msg: `Empty month query variables`,
+                status: "Validation_Error",
+            })
             throw new ValidationError("No months specified");
         }
 
         for (const month of months_numbers) {
             if (!isValidMonth(month.year, month.month_number)) {
+                log.error({
+                    action: "get_specific_month_data",
+                    msg: `Invalid month number given; year: ${month.year}, month_number: ${month.month_number}`,
+                    status: "Validation_Error",
+                })
                 throw new ValidationError("Month number must be between 1 and 12");
             }
         }
@@ -327,6 +345,64 @@ export class DashboardService{
             end_date: dates[dates.length - 1].end_date,
         })
         return response;
+    }
+    // Search Users:
+    // Get users based on filters
+    // Filters are: { username, email, role}
+    // pageSize define the amount of data returned, and page define the certain page of the data
+    // on the case that both page & pageSize are null, it will return all the data
+    async searchUsers(
+        filters: {
+            username?: string,
+            email?: string,
+            role?: string,
+        },
+        page: number,
+        pageSize: number
+    ): Promise<Http_Response<PaginatedResult<UserRow>>>{
+        const data = await this.userRepo.search(this.db, filters, page, pageSize);
 
+        const response: Http_Response<PaginatedResult<UserRow>> = {
+            status: "Successful",
+            status_code: 200,
+            data: data,
+            request_id: null,
+            msg: "Users search retrieved successfully",
+            url: null,
+            time_taken_ms: null,
+        }
+        log.info({
+            action: "search_users",
+            msg: "Successful returned users",
+            status: "Successful",
+            response: response,
+        })
+        return response;
+    }
+
+    // Get Users:
+    // Get all users with page & pageSize
+    async getUsers(
+        page: number,
+        pageSize: number
+    ): Promise<Http_Response<PaginatedResult<UserRow>>>{
+        const data = await this.userRepo.getAll(this.db, page, pageSize);
+
+        const response: Http_Response<PaginatedResult<UserRow>> = {
+            status: "Successful",
+            status_code: 200,
+            data: data,
+            request_id: null,
+            msg: "Users retrieved successfully",
+            url: null,
+            time_taken_ms: null,
+        }
+        log.info({
+            action: "get_users",
+            msg: "Successful returned users",
+            status: "Successful",
+            response: response,
+        })
+        return response;
     }
 }
