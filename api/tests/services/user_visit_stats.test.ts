@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { UserVisitStatsRow, UserVisitsStatsRepository } from "../../src/repositories/user_visits_stats.repository.ts";
+import { UserVisitStatsRow, UserVisitsStatsRepository, type UserVisitStatsData } from "../../src/repositories/user_visits_stats.repository.ts";
 import { UserStatsService } from "../../src/services/user_visits_stats.service.ts";
 import { Queryable } from "../../src/db/pool.ts";
 import { NotFoundError, ValidationError } from "../../src/lib/errors/errors.ts";
@@ -22,6 +22,7 @@ const createRepositoryMock = () => ({
     delete: vi.fn(),
     getById: vi.fn(),
     search: vi.fn(),
+    getDashboardData: vi.fn(),
     getAll: vi.fn(),
 }) satisfies {
     [method in keyof UserVisitsStatsRepository]:
@@ -138,5 +139,40 @@ describe("User stats service unit tests", () => {
         });
 
         await expect(service.getById(userVisitRow.id)).rejects.toThrow(NotFoundError)
+    });
+
+    test("gets dashboard aggregates for a date range", async () => {
+        const repository = createRepositoryMock();
+        const fakeDb: Queryable = { query: vi.fn() };
+        const startDate = new Date("2026-01-01T00:00:00.000Z");
+        const endDate = new Date("2026-02-01T00:00:00.000Z");
+        const dashboardData: UserVisitStatsData = {
+            date_start: startDate,
+            date_end: endDate,
+            summary: {
+                total_visits: 1,
+                email_clicks: 1,
+                whatsapp_clicks: 0,
+                phone_clicks: 1,
+                total_click_events: 2,
+                email_click_rate: 100,
+                whatsapp_click_rate: 0,
+                phone_click_rate: 100,
+                average_time_on_page: 120,
+                median_time_on_page: 120,
+            },
+            daily: [],
+            device_type: [{ device_type: "mobile", visits: 1 }],
+            traffic_source: [{ traffic_source: "organic", visits: 1 }],
+            location: [{ location: "New York", visits: 1 }],
+        };
+        repository.getDashboardData.mockResolvedValue(dashboardData);
+
+        const service = new UserStatsService(repository, fakeDb);
+        const response = await service.getDashboardData(startDate, endDate);
+
+        expect(repository.getDashboardData).toHaveBeenCalledWith(fakeDb, startDate, endDate);
+        expect(response.status_code).toBe(200);
+        expect(response.data).toEqual(dashboardData);
     });
 })

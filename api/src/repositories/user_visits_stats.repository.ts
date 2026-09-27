@@ -19,6 +19,33 @@ export interface UserVisitStatsRow{
     created_at: Date,
 };
 
+export interface UserVisitStatsData{
+    date_start: Date,
+    date_end: Date,
+    summary: {
+        total_visits: number,
+        email_clicks: number,
+        whatsapp_clicks: number,
+        phone_clicks: number,
+        total_click_events: number,
+        email_click_rate: number,
+        whatsapp_click_rate: number,
+        phone_click_rate: number,
+        average_time_on_page: number,
+        median_time_on_page: number
+    },
+    daily: Array<{
+        date: string,
+        visits: number,
+        email_clicks: number,
+        whatsapp_clicks: number,
+        phone_clicks: number
+    }>,
+    device_type: Array<{ device_type: string, visits: number }>,
+    traffic_source: Array<{ traffic_source: string, visits: number }>,
+    location: Array<{ location: string, visits: number }>
+}
+
 
 const USER_VISIT_STATS_COLUMNS = `
     id, email_click, whatsapp_click, phone_click, time_on_page, device_type, traffic_source, location, created_at`;
@@ -244,6 +271,145 @@ export class UserVisitsStatsRepository {
         });
         return result;
     }
+
+    async getDashboardData(
+        db: Queryable,
+        start_date: Date,
+        end_date: Date
+    ): Promise<UserVisitStatsData>{
+        const result = await queryOne<Omit<UserVisitStatsData, "date_start" | "date_end">>(
+            db,
+            `WITH filtered AS MATERIALIZED (
+                SELECT email_click, whatsapp_click, phone_click, time_on_page,
+                       device_type, traffic_source, location, created_at
+                FROM user_visits_stats
+                WHERE created_at >= $1 AND created_at < $2
+            ),
+            summary AS (
+                SELECT
+                    COUNT(*)::int AS total_visits,
+                    COUNT(*) FILTER (WHERE email_click)::int AS email_clicks,
+                    COUNT(*) FILTER (WHERE whatsapp_click)::int AS whatsapp_clicks,
+                    COUNT(*) FILTER (WHERE phone_click)::int AS phone_clicks,
+                    (
+                        COUNT(*) FILTER (WHERE email_click)
+                        + COUNT(*) FILTER (WHERE whatsapp_click)
+                        + COUNT(*) FILTER (WHERE phone_click)
+                    )::int AS total_click_events,
+                    COALESCE(
+                        (COUNT(*) FILTER (WHERE email_click) * 100.0 / NULLIF(COUNT(*), 0))::double precision,
+                        0
+                    ) AS email_click_rate,
+                    COALESCE(
+                        (COUNT(*) FILTER (WHERE whatsapp_click) * 100.0 / NULLIF(COUNT(*), 0))::double precision,
+                        0
+                    ) AS whatsapp_click_rate,
+                    COALESCE(
+                        (COUNT(*) FILTER (WHERE phone_click) * 100.0 / NULLIF(COUNT(*), 0))::double precision,
+                        0
+                    ) AS phone_click_rate,
+                    COALESCE(AVG(time_on_page)::double precision, 0) AS average_time_on_page,
+                    COALESCE(
+                        percentile_cont(0.5) WITHIN GROUP (ORDER BY time_on_page::double precision),
+                        0
+                    ) AS median_time_on_page
+                FROM filtered
+            ),
+            daily AS (
+                SELECT
+                    created_at::date AS visit_date,
+                    COUNT(*)::int AS visits,
+                    COUNT(*) FILTER (WHERE email_click)::int AS email_clicks,
+                    COUNT(*) FILTER (WHERE whatsapp_click)::int AS whatsapp_clicks,
+                    COUNT(*) FILTER (WHERE phone_click)::int AS phone_clicks
+                FROM filtered
+                GROUP BY created_at::date
+            ),
+            devices AS (
+                SELECT device_type, COUNT(*)::int AS visits
+                FROM filtered
+                GROUP BY device_type
+            ),
+            sources AS (
+                SELECT traffic_source::text AS traffic_source, COUNT(*)::int AS visits
+                FROM filtered
+                GROUP BY traffic_source
+            ),
+            locations AS (
+                SELECT location, COUNT(*)::int AS visits
+                FROM filtered
+                GROUP BY location
+                ORDER BY visits DESC, location ASC
+                LIMIT 10
+            )
+            SELECT
+                jsonb_build_object(
+                    'total_visits', summary.total_visits,
+                    'email_clicks', summary.email_clicks,
+                    'whatsapp_clicks', summary.whatsapp_clicks,
+                    'phone_clicks', summary.phone_clicks,
+                    'total_click_events', summary.total_click_events,
+                    'email_click_rate', summary.email_click_rate,
+                    'whatsapp_click_rate', summary.whatsapp_click_rate,
+                    'phone_click_rate', summary.phone_click_rate,
+                    'average_time_on_page', summary.average_time_on_page,
+                    'median_time_on_page', summary.median_time_on_page
+                ) AS summary,
+                COALESCE(
+                    (SELECT jsonb_agg(jsonb_build_object(
+                        'date', visit_date,
+                        'visits', visits,
+                        'email_clicks', email_clicks,
+                        'whatsapp_clicks', whatsapp_clicks,
+                        'phone_clicks', phone_clicks
+                    ) ORDER BY visit_date) FROM daily),
+                    '[]'::jsonb
+                ) AS daily,
+                COALESCE(
+                    (SELECT jsonb_agg(jsonb_build_object(
+                        'device_type', device_type,
+                        'visits', visits
+                    ) ORDER BY visits DESC, device_type) FROM devices),
+                    '[]'::jsonb
+                ) AS device_type,
+                COALESCE(
+                    (SELECT jsonb_agg(jsonb_build_object(
+                        'traffic_source', traffic_source,
+                        'visits', visits
+                    ) ORDER BY visits DESC, traffic_source) FROM sources),
+                    '[]'::jsonb
+                ) AS traffic_source,
+                COALESCE(
+                    (SELECT jsonb_agg(jsonb_build_object(
+                        'location', location,
+                        'visits', visits
+                    ) ORDER BY visits DESC, location) FROM locations),
+                    '[]'::jsonb
+                ) AS location
+            FROM summary`,
+            [start_date, end_date]
+        );
+
+        const data = {
+            date_start: start_date,
+            date_end: end_date,
+            summary: result!.summary,
+            daily: result!.daily,
+            device_type: result!.device_type,
+            traffic_source: result!.traffic_source,
+            location: result!.location,
+        } satisfies UserVisitStatsData;
+
+        log.debug({
+            action: "get dashboard data",
+            date_start: start_date,
+            date_end: end_date,
+            total_visits: data.summary.total_visits,
+        }, "success");
+
+        return data;
+    }
+
 
     async getAll(
         db: Queryable,

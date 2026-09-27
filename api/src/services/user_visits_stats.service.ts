@@ -1,6 +1,6 @@
 import type { UUID } from 'node:crypto';
 import { pool, type Queryable } from '../db/pool.ts';
-import { UserVisitsStatsRepository, type UserVisitStatsRow } from '../repositories/user_visits_stats.repository.ts';
+import { UserVisitsStatsRepository, type UserVisitStatsData, type UserVisitStatsRow } from '../repositories/user_visits_stats.repository.ts';
 import { NotFoundError,ValidationError } from '../lib/errors/errors.ts';
 import { Http_Response} from '../lib/responses.ts';
 import { logger } from '../lib/loggers/logger.ts';
@@ -196,5 +196,26 @@ export class UserStatsService{
 
 
         return response;
+    }
+
+    async getDashboardData(
+        start_date: Date,
+        end_date: Date
+    ): Promise<Http_Response<UserVisitStatsData>> {
+        const data = await this.userVisistsRepo.getDashboardData(
+            this.db,
+            start_date,
+            end_date,
+        );
+
+        return {
+            status: "Successfull",
+            status_code: 200,
+            data,
+            msg: "dashboard data retrieved",
+            request_id: null,
+            url: null,
+            time_taken_ms: null,
+        };
     }
 }
