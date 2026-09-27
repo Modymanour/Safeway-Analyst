@@ -87,7 +87,7 @@ export async function query<R extends QueryResultRow = QueryResultRow>(
         const result = await db.query<R>(text,values);
         const ms = Number(process.hrtime.bigint() - started) / 1e6;
         if (ms > SLOW_QUERY_MS) {
-            console.warn({ ms: Math.round(ms), sql: collapse(text), rows: result.rowCount }, 'Slow query');
+            log.warn({ ms: Math.round(ms), sql: collapse(text), rows: result.rowCount }, 'Slow query');
         }
         return result;
     }
