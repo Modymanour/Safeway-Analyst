@@ -1,7 +1,7 @@
 import { UUID } from "crypto";
 import { Queryable, query, queryOne, queryRows } from "../db/pool.ts";
 import { PaginatedResult } from"./types.ts";
-import { logger } from "../loggers/logger.ts";
+import { logger } from "../lib/loggers/logger.ts";
 
 const log = logger.child({
     component: "user_repository",
@@ -126,8 +126,6 @@ export class UserRepository {
             username?: string,
             email?: string,
             role?: string,
-            start_date?: Date,
-            end_date?: Date
         },
         page: number,
         pageSize: number
@@ -149,16 +147,6 @@ export class UserRepository {
         if (filters.role) {
             whereClauses.push(`role = $${index}`);
             values.push(filters.role);
-            index++;
-        }
-        if (filters.start_date) {
-            whereClauses.push(`created_at >= $${index}`);
-            values.push(filters.start_date);
-            index++;
-        }
-        if (filters.end_date) {
-            whereClauses.push(`created_at <= $${index}`);
-            values.push(filters.end_date);
             index++;
         }
 

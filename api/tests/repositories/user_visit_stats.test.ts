@@ -111,5 +111,47 @@ describe("User Visit Stats Repository tests", () => {
         const resultpag = await repository.search(client, filters, 0, 0);
         expect(resultpag.data.length).toBeGreaterThan(5);
     });
+
+    test("should aggregate dashboard metrics for the requested date range", async () => {
+        await repository.create(client, {
+            email_click: true,
+            whatsapp_click: false,
+            phone_click: true,
+            time_on_page: 120,
+            device_type: "mobile",
+            traffic_source: "organic",
+            location: "New York",
+        });
+        await repository.create(client, {
+            email_click: false,
+            whatsapp_click: true,
+            phone_click: false,
+            time_on_page: 60,
+            device_type: "desktop",
+            traffic_source: "referral",
+            location: "Paris",
+        });
+
+        const startDate = new Date("2000-01-01T00:00:00.000Z");
+        const endDate = new Date("2100-01-01T00:00:00.000Z");
+        const dashboard = await repository.getDashboardData(client, startDate, endDate);
+
+        expect(dashboard.summary.total_visits).toBe(2);
+        expect(dashboard.summary.email_clicks).toBe(1);
+        expect(dashboard.summary.whatsapp_clicks).toBe(1);
+        expect(dashboard.summary.phone_clicks).toBe(1);
+        expect(dashboard.summary.total_click_events).toBe(3);
+        expect(dashboard.summary.average_time_on_page).toBe(90);
+        expect(dashboard.summary.median_time_on_page).toBe(90);
+        expect(dashboard.device_type).toEqual(expect.arrayContaining([
+            { device_type: "mobile", visits: 1 },
+            { device_type: "desktop", visits: 1 },
+        ]));
+        expect(dashboard.traffic_source).toHaveLength(2);
+        expect(dashboard.location).toHaveLength(2);
+        expect(dashboard.daily).toHaveLength(1);
+        expect(dashboard.date_start).toEqual(startDate);
+        expect(dashboard.date_end).toEqual(endDate);
+    });
 });
 

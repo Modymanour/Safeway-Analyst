@@ -1,7 +1,7 @@
 import { Pool, PoolClient, QueryResult, QueryResultRow, types } from 'pg';
 import moment from 'moment';
 import { env } from '../config/env';
-import { logger } from "../loggers/logger.ts"
+import { logger } from "../lib/loggers/logger.ts"
 
 const log = logger.child({
     component: "pool"
