@@ -123,9 +123,9 @@ export class UserRepository {
     async search(
         db: Queryable,
         filters: {
-            username?: string,
-            email?: string,
-            role?: string,
+            username: string | null,
+            email: string | null,
+            role: string | null,
         },
         page: number,
         pageSize: number

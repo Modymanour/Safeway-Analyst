@@ -90,15 +90,10 @@ export class UserVisitController{
             });
         }
 
-        const page = Number(req.query.page ?? 1);
-        const pageNumber = Number(req.query.pageNumber ?? 10);
-
-        const input = {
-            ...parse.data
-        };
+        const { page, pageNumber, ...input} = parse.data
 
         try{
-            const data = await this.uservisitService.search(parse.data, page, pageNumber);
+            const data = await this.uservisitService.search(input, page, pageNumber);
             data.url = req.originalUrl;
             data.time_taken_ms = performance.now() - start;
             if(data.time_taken_ms > 1000){

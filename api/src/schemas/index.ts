@@ -49,6 +49,8 @@ export const userVisitFilter = z.object({
     location: z.string().nullable(),
     start_date: z.coerce.date().nullable(),
     end_date: z.coerce.date().nullable(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(100).default(10),
 });
 
 /* -------------------------------------------------------------------------- */
@@ -58,12 +60,13 @@ export const userVisitFilter = z.object({
 export const searchUsersSchema = z.object({
     username: z.string().nullable(),
     email: z.email().nullable(),
-    role: z.string().nullable()
+    role: z.string().nullable(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(100).default(10),
 });
 
-export const specificMonthsSchema = z.object({
-    months_number: z.object({
+export const specificMonthsSchema = z.array(
+    z.object({
         year: z.number(),
-        month_number: z.number()
-    })
-})
+        month_number: z.number().min(1).max(12),
+}));

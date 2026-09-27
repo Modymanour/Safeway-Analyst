@@ -353,9 +353,9 @@ export class DashboardService{
     // on the case that both page & pageSize are null, it will return all the data
     async searchUsers(
         filters: {
-            username?: string,
-            email?: string,
-            role?: string,
+            username: string | null,
+            email: string | null,
+            role: string | null,
         },
         page: number,
         pageSize: number
