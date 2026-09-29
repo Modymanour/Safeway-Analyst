@@ -30,11 +30,15 @@ export class ControllerErrorHelper {
         }
 
         if (error.name === "UnauhtorizedError") {
-            return res.status(403).json({ error: "Validation error", msg: error.message });
+            return res.status(403).json({ error: "Unauthorized error", msg: error.message });
         }
 
         if (error.name === "ForbiddenError") {
-            return res.status(401).json({ error: "Validation error", msg: error.message });
+            return res.status(401).json({ error: "Forbidden error", msg: error.message });
+        }
+
+        if (error.name === "ZodError") {
+            return res.status(400).json({ error: "Schema error", msg: error.message });
         }
 
         if (typeof (error as { issues?: unknown }).issues !== "undefined") {

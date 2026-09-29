@@ -102,7 +102,7 @@ export class UserVisitController{
             else{
                 logInfo(log, data, "create_user_event", req);
             }
-            return res.status(201).json(data);
+            return res.status(200).json(data);
         } catch (err){
             logError(log, err, "create_user_event", req);
             return ControllerErrorHelper.handle(err, req, res, log, {
