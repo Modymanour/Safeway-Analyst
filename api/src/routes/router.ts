@@ -27,10 +27,10 @@ router.get("api/dashboard/get-current-month-data", dashboardController.getCurren
 
 router.get("/api/dashboard/get-custom-month-data", dashboardController.getCustomMonthData);
 
-router.get("/api/dashboard/get-custom-month-range-data", dashboardController.getCustomMonthRangeDate);
+router.get("/api/dashboard/get-custom-month-range-data", dashboardController.getCustomMonthRangeData);
 
 router.get("/api/dashboard/get-specific-months-data", dashboardController.getSpecificMonthsData);
 
 router.get("/api/dashboard/search-users", dashboardController.searchUsers);
 
-router.get("/api//dashboard/get-all-users", dashboardController.getallUsers);
+router.get("/api//dashboard/get-all-users", dashboardController.getUsers);

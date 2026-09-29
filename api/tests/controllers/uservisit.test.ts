@@ -3,7 +3,6 @@ import type { Queryable } from "../../src/db/pool.ts";
 import { Response, Request } from "express";
 import { UserVisitController } from "../../src/controllers/uservisit.controller.ts";
 import { UserStatsService } from "../../src/services/user_visits_stats.service.ts";
-import { ZodError } from "zod";
 import { ValidationError } from "../../src/lib/errors/errors.ts";
 
 const fakeDb: Queryable = { query: vi.fn() };

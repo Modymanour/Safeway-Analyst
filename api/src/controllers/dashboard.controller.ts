@@ -75,7 +75,7 @@ export class DashboardController{
     ): Promise<Response> => {
         const start = performance.now();
 
-        if(!req.params.year || !req.query.month_number){
+        if(!req.query.year || !req.query.month_number){
             logError(log, new ValidationError("Misisng year or month_number data"), "get_custom_month_data", req);
             return ControllerErrorHelper.handle(new ValidationError("Misisng year or month_number data"), req, res, log, {
                 body: req.body,
@@ -106,13 +106,13 @@ export class DashboardController{
         }
     }
 
-    getCustomMonthRangeDate = async(
+    getCustomMonthRangeData = async(
         req: Request,
         res: Response
     ): Promise<Response> => {
         const start = performance.now();
 
-        if(!req.params.start_year || !req.query.start_month || !req.query.end_year || !req.query.end_month){
+        if(!req.query.start_year || !req.query.start_month || !req.query.end_year || !req.query.end_month){
             logError(log, new ValidationError("Misisng month and year data"), "get_custom_month_range_data", req);
             return ControllerErrorHelper.handle(new ValidationError("Misisng month and year data"), req, res, log, {
                 body: req.body,
@@ -151,7 +151,9 @@ export class DashboardController{
     ): Promise<Response> => {
         const start = performance.now();
 
-        const parse = specificMonthsSchema.safeParse(req.query);
+        const months = JSON.parse(req.query.months as string);
+
+        const parse = specificMonthsSchema.safeParse(months);
         
         if(!parse.success){
             logZodError(log, parse, "get_specific_months_data", req, res);
@@ -221,7 +223,7 @@ export class DashboardController{
         }
     }
 
-    getallUsers = async(
+    getUsers = async(
         req: Request,
         res: Response
     ): Promise<Response> => {

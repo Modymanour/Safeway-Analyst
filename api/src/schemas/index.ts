@@ -67,6 +67,6 @@ export const searchUsersSchema = z.object({
 
 export const specificMonthsSchema = z.array(
     z.object({
-        year: z.number(),
-        month_number: z.number().min(1).max(12),
+        year: z.coerce.number().int(),
+        month_number: z.coerce.number().int().min(1).max(12),
 }));
