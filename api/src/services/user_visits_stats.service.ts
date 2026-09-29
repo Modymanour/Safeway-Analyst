@@ -140,14 +140,14 @@ export class UserStatsService{
     }
     async search(
         filters:{
-            email_click?: boolean,
-            whatsapp_click?: boolean,
-            phone_click?: boolean,
-            device_type?: string,
-            traffic_source?: string,
-            location?: string,
-            start_date?: Date,
-            end_date?: Date
+            email_click: boolean | null,
+            whatsapp_click: boolean | null,
+            phone_click: boolean | null,
+            device_type: string | null,
+            traffic_source: string | null,
+            location: string | null,
+            start_date: Date | null,
+            end_date: Date | null
         },
         page: number,
         pageSize: number

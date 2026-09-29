@@ -87,7 +87,7 @@ export class DashboardService{
             action: "get_current_year_range_data",
             msg: "Successful month range returned",
             status: "Successful",
-            response: response,
+            // response: response,
             start_date: year_range.start,
             end_Date: year_range.end
         })
@@ -133,7 +133,7 @@ export class DashboardService{
             action: "get_current_month_data",
             msg: "Successful month range returned",
             status: "Success",
-            response: response,
+            // response: response,
             start_date: month_data.start_date,
             end_Date: month_data.end_date
         })
@@ -190,7 +190,7 @@ export class DashboardService{
         log.info({
             action: "get_custom_month_data",
             msg: "Successful month data returned",
-            response: response,
+            // response: response,
             start_date: range.start_date,
             end_Date: range.end_date
         })
@@ -259,7 +259,7 @@ export class DashboardService{
             action: "get_custom_month_range_data",
             msg: "Successful month range returned",
             status: "Successful",
-            response: response,
+            // response: response,
             start_date: range.start_date,
             end_Date: range.end_date
         })
@@ -353,9 +353,9 @@ export class DashboardService{
     // on the case that both page & pageSize are null, it will return all the data
     async searchUsers(
         filters: {
-            username?: string,
-            email?: string,
-            role?: string,
+            username: string | null,
+            email: string | null,
+            role: string | null,
         },
         page: number,
         pageSize: number

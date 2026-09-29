@@ -14,7 +14,7 @@ export const registerSchema = z.object({
 /* User visits                                                                */
 /* -------------------------------------------------------------------------- */
 
-export const userVisitSchema = z.object({
+export const userVisitCreateSchema = z.object({
     id: z.uuid(),
     email_click: z.boolean(),
     whatsapp_click: z.boolean(),
@@ -23,4 +23,50 @@ export const userVisitSchema = z.object({
     device_type: z.string(),
     traffic_source: z.string(),
     location: z.string(),
-})
+});
+
+export const userVisitUpdateSchema = z.object({
+    email_click: z.boolean().nullable(),
+    whatsapp_click: z.boolean().nullable(),
+    phone_click: z.boolean().nullable(),
+    time_on_page: z.number().nullable(),
+    device_type: z.string().nullable(),
+    traffic_source: z.string().nullable(),
+    location: z.string().nullable(),
+});
+
+const nullableBoolean = z
+    .enum(["true", "false"])
+    .transform(value => value === "true")
+    .nullable();
+
+export const userVisitFilter = z.object({
+    email_click: nullableBoolean,
+    whatsapp_click: nullableBoolean,
+    phone_click: nullableBoolean,
+    device_type: z.string().nullable(),
+    traffic_source: z.string().nullable(),
+    location: z.string().nullable(),
+    start_date: z.coerce.date().nullable(),
+    end_date: z.coerce.date().nullable(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+/* -------------------------------------------------------------------------- */
+/* Dashboard                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export const searchUsersSchema = z.object({
+    username: z.string().nullable(),
+    email: z.email().nullable(),
+    role: z.string().nullable(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export const specificMonthsSchema = z.array(
+    z.object({
+        year: z.coerce.number().int(),
+        month_number: z.coerce.number().int().min(1).max(12),
+}));

@@ -12,16 +12,16 @@ export class NotFoundError extends Error {// status: 404
     }
 }
 
-export class Unauthorized extends Error{// status: 401
+export class UnauthorizedError extends Error{// status: 401
     constructor(message: string) {
         super(message);
         this.name = 'UnauthorizedError';
     }
 }
 
-export class Forbidden extends Error{// status: 403
+export class ForbiddenError extends Error{// status: 403
     constructor(message: string) {
         super(message);
-        this.name = 'UnauthorizedError';
+        this.name = 'ForbiddenError';
     }
 }
