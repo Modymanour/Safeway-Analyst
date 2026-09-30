@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-safeway}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
-      POSTGRES_DB: ${POSTGRES_DB:-safeway_analytics}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
@@ -24,9 +24,9 @@ services:
       PINO_LOG_LEVEL: ${PINO_LOG_LEVEL:-info}
       PORT: "4000"
       POSTGRES_USER: ${POSTGRES_USER:-safeway}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
-      POSTGRES_DB: ${POSTGRES_DB:-safeway_analytics}
-      POSTGRESQL_CONNECTION_STRING: postgresql://${POSTGRES_USER:-safeway}:${POSTGRES_PASSWORD:-change-this-local-password}@db:5432/${POSTGRES_DB:-safeway_analytics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRESQL_CONNECTION_STRING: postgresql://${POSTGRES_USER:-safeway}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-safeway_analytics}
     ports:
       - "${API_PORT:-4000}:4000"
     depends_on:
@@ -40,7 +40,7 @@ services:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     restart: unless-stopped
     ports:
-      - "${DASHBOARD_PORT:-8080}:80"
+      - "127.0.0.1:${DASHBOARD_PORT:-8080}:80"
     depends_on:
       - api
 

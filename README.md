@@ -15,7 +15,19 @@ An independently hosted analytics dashboard and API backed by PostgreSQL. The da
 3. Open the dashboard at <http://localhost:8080>. The API is also available at <http://localhost:4000>; PostgreSQL is exposed locally at port `5433`.
 4. Stop the stack with `docker compose down`. To also delete its persistent database, use `docker compose down -v`.
 
-The API container waits for PostgreSQL health, applies pending migrations on startup, and then listens on port `4000` internally. The dashboard's nginx server proxies `/api/*` to the API container and serves client-side routes.
+The API container waits for PostgreSQL health, applies pending migrations on startup, and then listens on port `4000` internally. The dashboard container runs nginx on port `80`; Compose publishes it on `127.0.0.1:8080` by default. Nginx proxies `/api/*` to the API container and serves client-side routes.
+
+### Using Caddy on the server
+
+Caddy and nginx are not competing for the same host port here: Caddy accepts public HTTP/HTTPS traffic, then proxies to the dashboard's host-published port. For Caddy installed directly on the host, add a site to the Caddyfile and replace the example hostname:
+
+```caddyfile
+analytics.example.com {
+	reverse_proxy 127.0.0.1:8080
+}
+```
+
+If Caddy itself runs in Docker, put it on the same Docker network as this Compose project and proxy to `dashboard:80` instead. Do not use `localhost:8080` from inside the Caddy container; there, localhost refers to the Caddy container itself. After changing Compose settings, recreate the dashboard with `docker compose up -d --build dashboard`.
 
 Interactive API documentation is available at <http://localhost:4000/api-docs/> when the API is running; its OpenAPI JSON is at <http://localhost:4000/api-docs/openapi.json>. It includes the current visit and dashboard routes.
 
