@@ -41,14 +41,14 @@ const nullableBoolean = z
     .nullable();
 
 export const userVisitFilter = z.object({
-    email_click: nullableBoolean,
-    whatsapp_click: nullableBoolean,
-    phone_click: nullableBoolean,
-    device_type: z.string().nullable(),
-    traffic_source: z.string().nullable(),
-    location: z.string().nullable(),
-    start_date: z.coerce.date().nullable(),
-    end_date: z.coerce.date().nullable(),
+    email_click: nullableBoolean.optional().default(null),
+    whatsapp_click: nullableBoolean.optional().default(null),
+    phone_click: nullableBoolean.optional().default(null),
+    device_type: z.string().nullable().optional().default(null),
+    traffic_source: z.string().nullable().optional().default(null),
+    location: z.string().nullable().optional().default(null),
+    start_date: z.coerce.date().nullable().optional().default(null),
+    end_date: z.coerce.date().nullable().optional().default(null),
     page: z.coerce.number().int().min(1).default(1),
     pageNumber: z.coerce.number().int().min(1).max(100).default(10),
 });

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import dotenv from "dotenv";
-import path from "path";
 
 const envSchema = z.object({
     NODE_ENV: z
@@ -22,8 +21,7 @@ const envSchema = z.object({
     POSTGRES_DB: z.string().min(1)
 });
 
-const directoryPath = import.meta.dirname
-dotenv.config({ path: path.resolve(directoryPath, '.env') });
+dotenv.config();
 
 const parsedEnv = envSchema.safeParse(process.env);
 

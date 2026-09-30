@@ -151,7 +151,21 @@ export class DashboardController{
     ): Promise<Response> => {
         const start = performance.now();
 
-        const months = JSON.parse(req.query.months as string);
+        let months: unknown;
+        try {
+            if (typeof req.query.months !== "string") {
+                throw new Error("Missing months query parameter");
+            }
+            months = JSON.parse(req.query.months);
+        } catch {
+            const error = new ValidationError("Missing or invalid months query parameter");
+            logError(log, error, "get_specific_months_data", req);
+            return ControllerErrorHelper.handle(error, req, res, log, {
+                body: req.body,
+                method: req.method,
+                path: req.originalUrl,
+            });
+        }
 
         const parse = specificMonthsSchema.safeParse(months);
         

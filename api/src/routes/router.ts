@@ -21,9 +21,9 @@ router.get("/api/user-visit/get", userVisitController.getAll);
 /* Dashboard                                                                  */
 /* ========================================================================== */
 
-router.get("api/dashboard/get-current-year-data", dashboardController.getCurrentYearData);
+router.get("/api/dashboard/get-current-year-data", dashboardController.getCurrentYearData);
 
-router.get("api/dashboard/get-current-month-data", dashboardController.getCurrentMonthData);
+router.get("/api/dashboard/get-current-month-data", dashboardController.getCurrentMonthData);
 
 router.get("/api/dashboard/get-custom-month-data", dashboardController.getCustomMonthData);
 
@@ -33,4 +33,4 @@ router.get("/api/dashboard/get-specific-months-data", dashboardController.getSpe
 
 router.get("/api/dashboard/search-users", dashboardController.searchUsers);
 
-router.get("/api//dashboard/get-all-users", dashboardController.getUsers);
+router.get("/api/dashboard/get-all-users", dashboardController.getUsers);
