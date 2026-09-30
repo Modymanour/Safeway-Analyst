@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --background: 215 67% 12%;
+    --foreground: 44 46% 94%;
+    --card: 214 58% 16%;
+    --card-foreground: 44 46% 94%;
+    --popover: 214 55% 15%;
+    --popover-foreground: 44 46% 94%;
+    --primary: 46 65% 52%;
+    --primary-foreground: 215 67% 12%;
+    --secondary: 214 45% 20%;
+    --secondary-foreground: 44 46% 94%;
+    --muted: 214 42% 22%;
+    --muted-foreground: 40 18% 68%;
+    --accent: 214 48% 24%;
+    --accent-foreground: 44 46% 94%;
+    --destructive: 0 70% 52%;
+    --destructive-foreground: 44 46% 94%;
+    --border: 216 40% 26%;
+    --input: 214 42% 22%;
+    --ring: 46 65% 52%;
+    --chart-1: 46 65% 52%;
+    --chart-2: 178 40% 56%;
+    --chart-3: 212 60% 70%;
+    --chart-4: 355 45% 60%;
+    --chart-5: 44 46% 80%;
+    --radius: 0.75rem;
+    --font-heading: "Playfair Display", ui-serif, Georgia, serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Playfair Display", ui-serif, Georgia, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --sidebar-background: 214 68% 9%;
+    --sidebar-foreground: 44 46% 94%;
+    --sidebar-primary: 46 65% 52%;
+    --sidebar-primary-foreground: 215 67% 12%;
+    --sidebar-accent: 214 45% 18%;
+    --sidebar-accent-foreground: 44 46% 94%;
+    --sidebar-border: 216 42% 20%;
+    --sidebar-ring: 46 65% 52%;
+  }
+
+  * { @apply border-border; }
+  html { min-width: 320px; background: hsl(var(--background)); }
+  body { @apply bg-background text-foreground font-body antialiased; margin: 0; min-height: 100vh; }
+  button, input { font: inherit; }
+  button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible { @apply outline outline-2 outline-offset-2 outline-ring; }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-heading { font-family: var(--font-heading); }
+  .font-body { font-family: var(--font-body); }
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(216 40% 30%); border-radius: 9999px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+}
+
+@media (max-width: 700px) {
+  .font-display { letter-spacing: -0.02em; }
+}

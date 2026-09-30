@@ -1,32 +1,48 @@
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-safeway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
+      POSTGRES_DB: ${POSTGRES_DB:-safeway_analytics}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
-      - postgres_data:/var/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
-  
+
   api:
     build: ./api
     restart: unless-stopped
-    ports:
-      - "4000:4000"
     environment:
-      POSTGRESQL_CONNECTION_STRING: ${POSTGRESQL_CONNECTION_STRING}
+      NODE_ENV: ${NODE_ENV:-development}
+      PINO_LOG_LEVEL: ${PINO_LOG_LEVEL:-info}
+      PORT: "4000"
+      POSTGRES_USER: ${POSTGRES_USER:-safeway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
+      POSTGRES_DB: ${POSTGRES_DB:-safeway_analytics}
+      POSTGRESQL_CONNECTION_STRING: postgresql://${POSTGRES_USER:-safeway}:${POSTGRES_PASSWORD:-change-this-local-password}@db:5432/${POSTGRES_DB:-safeway_analytics}
+    ports:
+      - "${API_PORT:-4000}:4000"
     depends_on:
       db:
         condition: service_healthy
-        restart: true
+
+  dashboard:
+    build:
+      context: ./dashboard
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT:-8080}:80"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

@@ -1,17 +1,34 @@
-# Safeway Api
+# Safe Way Analytics API
 
 A TypeScript/Express backed by Postgresql to store user actions on https://safewaytransportation.it.com to provide web metrics & insights
 
-## Current Status
-- Database (no)
-- Middleware (no)
-- Authentication (no)
-- Authorization (no)
-- Error handling (no)
-- Logging (no)
-- CI (no)
-- CD (no)
-- Routes & Controllers (no)
+## API documentation
+
+With the API running locally, open Swagger UI at **<http://localhost:4000/api-docs/>**. The interactive OpenAPI page documents the visit and dashboard endpoints and lets you try requests. In Docker Compose, use the API host port configured by `API_PORT` (default `4000`), for example <http://localhost:4000/api-docs/>.
+
+The OpenAPI JSON is available at <http://localhost:4000/api-docs/openapi.json>. The specification is configured in `src/config/openapi.ts` and served by Express alongside Swagger UI.
+
+### Documented endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/user-visit` | Record a visit |
+| `GET` | `/api/user-visit/get` | List visit records |
+| `GET` | `/api/user-visit/search` | Search visit records |
+| `GET` | `/api/dashboard/get-current-year-data` | Current year's analytics |
+| `GET` | `/api/dashboard/get-current-month-data` | Current month's analytics |
+| `GET` | `/api/dashboard/get-custom-month-data` | A selected month's analytics |
+| `GET` | `/api/dashboard/get-custom-month-range-data` | A contiguous month range |
+| `GET` | `/api/dashboard/get-specific-months-data` | Selected months' analytics |
+| `GET` | `/api/dashboard/search-users` | Search dashboard users |
+| `GET` | `/api/dashboard/get-all-users` | List dashboard users |
+
+> **Security:** Authentication and authorization are not currently implemented. The user endpoints can return sensitive account information. Do not expose them or this API to an untrusted network until access control and safe user response fields are implemented.
+
+## Change log
+
+- Added interactive Swagger UI at `/api-docs/` and raw OpenAPI 3.0 JSON at `/api-docs/openapi.json`; the API logs the UI URL on startup.
+- Corrected the current-year, current-month, and get-all-users dashboard route paths so they are registered under `/api/dashboard/...`.
 
 ## Requirements
 - Node.js
@@ -126,8 +143,7 @@ Stores website visit and interaction statistics.
 
 ## Api Reference
 
-| Category | Method | Endpoint | Description | Request Body / Parameters |
-| :--- | :--- | :--- | :--- | :--- |
+For full request and response details, use the [interactive Swagger documentation](http://localhost:4000/api-docs) while the API is running.
 
 ## Tests
 

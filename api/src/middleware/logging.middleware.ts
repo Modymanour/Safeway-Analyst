@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ErrorRequestHandler } from "express";
 import pinoHttp from "pino-http";
-import { logger } from "../loggers/logger.ts";
+import { logger } from "../lib/loggers/logger.ts";
 
 export const requestLogger = pinoHttp({
     logger,
