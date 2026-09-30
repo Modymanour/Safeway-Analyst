@@ -24,6 +24,8 @@ jobs:
         run: |
           docker save safeway-api:latest -o safeway-api.tar
           docker save safeway-dashboard:latest -o safeway-dashboard.tar
+          chmod 664 safeway-api.tar
+          chmod 664 safeway-dashboard.tar
 
       - name: Upload Docker Compose
         uses: appleboy/scp-action@v0.1.7
