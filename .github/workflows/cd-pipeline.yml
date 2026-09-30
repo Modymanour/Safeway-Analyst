@@ -1,0 +1,70 @@
+name: Build & Deploy
+
+on: 
+  push:
+    branch: ['main']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t safeway-api:latest ./api
+
+      - name: Build dashboard image
+        run: docker build -t safeway-dashboard:latest ./dashboard
+      
+      - name: Save Docker images
+        run: |
+          docker save safeway-api:latest -o safeway-api.tar
+          docker save safeway-dashboard:latest -o safeway-dashboard.tar
+
+      - name: Upload Docker Compose
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 2222
+          source: "docker-compose.yml"
+          target: "/home/mody/safeway/"
+
+      - name: Upload Api image
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 2222
+          source: "safeway-api.tar"
+          target: "/home/mody/safeway/dashboard/api/"
+
+      - name: Upload Dashboard image
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 2222
+          source: "safeway-dashboard.tar"
+          target: "/home/mody/safeway/dashboard/dashboard/"
+      
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 2222
+          script: |
+            docker load -i /home/mody/safeway/dashboard/api/safeway-api.tar
+            docker load -i /home/mody/safeway/dashboard/dashboard/safeway-dashboard.tar
+
+            cd /home/mody/safeway/dashboard
+            docker compose up -d

@@ -17,6 +17,8 @@ An independently hosted analytics dashboard and API backed by PostgreSQL. The da
 
 The API container waits for PostgreSQL health, applies pending migrations on startup, and then listens on port `4000` internally. The dashboard's nginx server proxies `/api/*` to the API container and serves client-side routes.
 
+Interactive API documentation is available at <http://localhost:4000/api-docs/> when the API is running; its OpenAPI JSON is at <http://localhost:4000/api-docs/openapi.json>. It includes the current visit and dashboard routes.
+
 ## Local development without Docker
 
 Start PostgreSQL and create the database/user configured in the API environment. Then:
