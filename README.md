@@ -6,41 +6,38 @@ An independently hosted analytics dashboard and API backed by PostgreSQL. The da
 
 - `api/`: TypeScript, Express, PostgreSQL and SQL migrations
 - `dashboard/`: React, Vite, Tailwind CSS and Recharts
-- `docker-compose.yml`: PostgreSQL, API, and nginx-served dashboard
+- `docker-compose.yml`: PostgreSQL, API, and a static dashboard server
 
 ## Quick start with Docker Compose
 
 1. Copy `.env.example` to `.env` and replace the example PostgreSQL password with a local secret.
 2. From the repository root, run `docker compose up --build`.
-3. Open the dashboard at <http://localhost:8080>. The API is also available at <http://localhost:4000>; PostgreSQL is exposed locally at port `5433`.
+3. Open the dashboard at <http://localhost:8080/dashboard/>. The API is also available at <http://localhost:4000>; PostgreSQL is exposed locally at port `5432` by default.
 4. Stop the stack with `docker compose down`. To also delete its persistent database, use `docker compose down -v`.
 
-The API container waits for PostgreSQL health, connects to the Compose database by service name (`db:5432`), applies pending migrations on startup, and then listens on port `4000` internally. PostgreSQL credentials are passed as separate connection fields, so passwords do not need to be URL-encoded. The dashboard container runs nginx on port `80`; Compose publishes it on `127.0.0.1:8080` by default. Nginx proxies `/api/*` to the API container and serves `/dashboard/*` client-side routes and assets.
+The API container waits for PostgreSQL health, connects to the Compose database by service name (`db:5432`), applies pending migrations on startup, and then listens on port `4000` internally. PostgreSQL credentials are passed as separate connection fields, so passwords do not need to be URL-encoded. The dashboard container serves the built static files with a small Node HTTP server on port `4173`; Compose publishes it on `127.0.0.1:8080` by default. There is no nginx container or API proxy inside the dashboard. Caddy routes `/dashboard/*` to the dashboard and `/api/*` directly to the API.
 
 ### Using Caddy on the server
 
-Caddy and nginx are not competing for the same host port here: Caddy accepts public HTTP/HTTPS traffic, then proxies to the dashboard's host-published port. For Caddy installed directly on the host, add a site to the Caddyfile and replace the example hostname:
+Caddy handles public HTTP/HTTPS and routes each request directly to its matching Compose service. For Caddy installed directly on the host, add these handlers inside the existing site block. Preserve the path prefixes; do not use `handle_path` or a URI rewrite for these routes. Leave the existing website handlers after these dashboard/API handlers:
 
 ```caddyfile
-analytics.example.com {
-	reverse_proxy 127.0.0.1:8080
+safewaytransportation.it.com {
+	@dashboard path /dashboard /dashboard/*
+	handle @dashboard {
+		reverse_proxy 127.0.0.1:8080
+	}
+	@analytics_api path /api/*
+	handle @analytics_api {
+		reverse_proxy 127.0.0.1:4000
+	}
+	# Keep the existing website's handlers/catch-all here.
 }
 ```
 
-To mount the dashboard under `/dashboard/` on an existing site, forward both `/dashboard/*` and `/api/*` to the dashboard nginx container without stripping either path prefix. For example, add these handlers to the existing `safeway.com` site block, before its catch-all site handler:
+The API routes already use `/api`, and the dashboard routes/assets use `/dashboard`, so these handlers preserve the paths and Caddy proxies each request only once. If the main site already owns `/api/*`, configure a distinct API path in both the dashboard build and Caddy before deployment.
 
-```caddyfile
-handle /dashboard* {
-	reverse_proxy 127.0.0.1:8080
-}
-handle /api/* {
-	reverse_proxy 127.0.0.1:8080
-}
-```
-
-The dashboard's client routes and built assets are served under `/dashboard/`; nginx also proxies `/api/*` to the API container. If the main site already owns `/api/*`, use a distinct dashboard API prefix and set `VITE_API_BASE_URL` to match it.
-
-If Caddy itself runs in Docker, put it on the same Docker network as this Compose project and proxy to `dashboard:80` instead. Do not use `localhost:8080` from inside the Caddy container; there, localhost refers to the Caddy container itself. After changing Compose settings, recreate the dashboard with `docker compose up -d --build dashboard`.
+If Caddy itself runs in Docker, attach it to this Compose project's network and proxy to `dashboard:4173` and `api:4000` instead. Do not use `localhost` from inside the Caddy container; there, localhost refers to Caddy itself. After changing Compose settings, recreate the services with `docker compose up -d --build`.
 
 Interactive API documentation is available at <http://localhost:4000/api-docs/> when the API is running; its OpenAPI JSON is at <http://localhost:4000/api-docs/openapi.json>. It includes the current visit and dashboard routes.
 
@@ -53,7 +50,7 @@ cd api
 cp ../.env.example .env
 ```
 
-Set `POSTGRESQL_CONNECTION_STRING` in `api/.env` to a local connection, for example `postgresql://safeway:your-local-password@localhost:5433/safeway_analytics`, then run `npm ci` and `npm start`.
+Set `POSTGRESQL_CONNECTION_STRING` in `api/.env` to a local connection, for example `postgresql://safeway:your-local-password@localhost:5432/safeway_analytics`, then run `npm ci` and `npm start`.
 
 In another terminal:
 
@@ -75,7 +72,7 @@ Root `.env.example` contains Compose settings:
 | `POSTGRES_USER` | PostgreSQL account | `safeway` |
 | `POSTGRES_PASSWORD` | PostgreSQL password — change this | example value |
 | `POSTGRES_DB` | Database name | `safeway_analytics` |
-| `POSTGRES_PORT` | Host port for PostgreSQL | `5433` |
+| `POSTGRES_PORT` | Host port for PostgreSQL | `5432` |
 | `API_PORT` | Host port for the API | `4000` |
 | `DASHBOARD_PORT` | Host port for the dashboard | `8080` |
 | `NODE_ENV` | API runtime mode | `development` |
