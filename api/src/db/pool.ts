@@ -30,29 +30,34 @@ function collapse(sql: string): string {
 
 const connectionString = env.POSTGRESQL_CONNECTION_STRING;
 
-if (!connectionString) {
+if (!env.POSTGRES_HOST && !connectionString) {
     throw new Error('POSTGRESQL_CONNECTION_STRING is not configured');
 }
 
+const connectionConfig = env.POSTGRES_HOST
+    ? {
+        host: env.POSTGRES_HOST,
+        port: env.POSTGRES_PORT ?? 5432,
+        database: env.POSTGRES_DB,
+        user: env.POSTGRES_USER,
+        password: env.POSTGRES_PASSWORD,
+    }
+    : { connectionString: connectionString! };
 
 const config = {
-    connectionString: connectionString,
+    ...connectionConfig,
     application_name: 'safeway-analyst',
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000
 }
 
-export const pool = new Pool({
-    connectionString: config.connectionString,
-    application_name: config.application_name,
-    max: config.max,
-    idleTimeoutMillis: config.idleTimeoutMillis,
-    connectionTimeoutMillis: config.connectionTimeoutMillis
-});
+export const pool = new Pool(config);
 
 log.debug({
-    connectionString: config.connectionString,
+    host: env.POSTGRES_HOST ?? 'from connection string',
+    database: env.POSTGRES_DB,
+    user: env.POSTGRES_USER,
     application_name: config.application_name,
     max: config.max,
     idleTimeoutMillis: config.idleTimeoutMillis,

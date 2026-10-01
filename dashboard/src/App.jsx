@@ -6,7 +6,7 @@ import PageNotFound from "@/lib/PageNotFound";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <Routes>
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<Dashboard />} />

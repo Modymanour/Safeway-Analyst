@@ -68,5 +68,5 @@ jobs:
             docker load -i /home/mody/safeway/dashboard/api/safeway-api.tar
             docker load -i /home/mody/safeway/dashboard/dashboard/safeway-dashboard.tar
 
-            cd /home/mody/safeway/dashboard
+            cd /home/mody/safeway
             docker compose --env-file .env up -d

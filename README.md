@@ -15,7 +15,7 @@ An independently hosted analytics dashboard and API backed by PostgreSQL. The da
 3. Open the dashboard at <http://localhost:8080>. The API is also available at <http://localhost:4000>; PostgreSQL is exposed locally at port `5433`.
 4. Stop the stack with `docker compose down`. To also delete its persistent database, use `docker compose down -v`.
 
-The API container waits for PostgreSQL health, applies pending migrations on startup, and then listens on port `4000` internally. The dashboard container runs nginx on port `80`; Compose publishes it on `127.0.0.1:8080` by default. Nginx proxies `/api/*` to the API container and serves client-side routes.
+The API container waits for PostgreSQL health, connects to the Compose database by service name (`db:5432`), applies pending migrations on startup, and then listens on port `4000` internally. PostgreSQL credentials are passed as separate connection fields, so passwords do not need to be URL-encoded. The dashboard container runs nginx on port `80`; Compose publishes it on `127.0.0.1:8080` by default. Nginx proxies `/api/*` to the API container and serves `/dashboard/*` client-side routes and assets.
 
 ### Using Caddy on the server
 
@@ -26,6 +26,19 @@ analytics.example.com {
 	reverse_proxy 127.0.0.1:8080
 }
 ```
+
+To mount the dashboard under `/dashboard/` on an existing site, forward both `/dashboard/*` and `/api/*` to the dashboard nginx container without stripping either path prefix. For example, add these handlers to the existing `safeway.com` site block, before its catch-all site handler:
+
+```caddyfile
+handle /dashboard* {
+	reverse_proxy 127.0.0.1:8080
+}
+handle /api/* {
+	reverse_proxy 127.0.0.1:8080
+}
+```
+
+The dashboard's client routes and built assets are served under `/dashboard/`; nginx also proxies `/api/*` to the API container. If the main site already owns `/api/*`, use a distinct dashboard API prefix and set `VITE_API_BASE_URL` to match it.
 
 If Caddy itself runs in Docker, put it on the same Docker network as this Compose project and proxy to `dashboard:80` instead. Do not use `localhost:8080` from inside the Caddy container; there, localhost refers to the Caddy container itself. After changing Compose settings, recreate the dashboard with `docker compose up -d --build dashboard`.
 
@@ -69,7 +82,7 @@ Root `.env.example` contains Compose settings:
 | `PINO_LOG_LEVEL` | API logging threshold | `info` |
 | `VITE_API_BASE_URL` | Browser API path/base URL | `/api` |
 
-`POSTGRESQL_CONNECTION_STRING` is also shown in the template. Compose constructs the correct internal connection string from the database variables; for local non-Docker API runs use a `localhost` hostname and the host-mapped PostgreSQL port.
+`POSTGRESQL_CONNECTION_STRING` is an optional fallback for local/test API runs. Compose uses `POSTGRES_HOST=db` and the individual database credentials; for a local non-Docker API run, use a `localhost` hostname and the host-mapped PostgreSQL port in the connection string.
 
 Dashboard-specific local settings are documented in `dashboard/.env.example`. Only `VITE_*` values are included in browser assets; never put credentials or private server secrets in dashboard variables.
 

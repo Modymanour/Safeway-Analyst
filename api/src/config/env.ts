@@ -10,7 +10,11 @@ const envSchema = z.object({
         .enum(["fatal", "error", "warn", "info", "debug", "trace"])
         .default("info"),
 
-    POSTGRESQL_CONNECTION_STRING: z.string().min(1),
+    POSTGRESQL_CONNECTION_STRING: z.string().min(1).optional(),
+
+    POSTGRES_HOST: z.string().min(1).optional(),
+
+    POSTGRES_PORT: z.coerce.number().int().positive().optional(),
 
     PORT: z.string(),
 

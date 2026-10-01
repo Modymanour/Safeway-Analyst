@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": "/dashboard/",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./src/*"]
     },
