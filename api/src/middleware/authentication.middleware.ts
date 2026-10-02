@@ -2,33 +2,13 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../lib/loggers/logger.ts';
+import { Payload } from '../lib/auth.helper.ts';
 
 const log = logger.child({
     component: "authentication.middleware"
 });
 
-export interface Payload {
-    sub: string, // user id
-    username: string,
-    email: string,
-    tokenType: string, // access or refresh
-    role: string
-    iat: number,
-    exp: number,
-    iss: string,
-}
 
-const createToken = (payload: Payload, secret: string, expiresIn: jwt.SignOptions['expiresIn']) => {
-    return jwt.sign(payload, secret, { expiresIn });
-}
-
-export const generateAccessToken = (payload: Payload) => {
-    return createToken(payload, env.JWT_SECRET, '15m');
-}
-
-export const generateRefreshToken = (payload: Payload) => {
-    return createToken(payload, env.JWT_REFRESH_SECRET, '7d');
-}
 
 export const authenticationMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers['authorization'];
