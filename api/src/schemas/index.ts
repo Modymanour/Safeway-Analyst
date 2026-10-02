@@ -4,7 +4,7 @@ import { z } from 'zod';
 /* AUTH                                                                     */
 /* -------------------------------------------------------------------------- */
 export const registerSchema = z.object({
-    name: z.string(),
+    username: z.string(),
     email: z.email().trim().toLowerCase(),
     password: z.string().min(8).max(256),
 })

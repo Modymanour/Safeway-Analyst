@@ -19,12 +19,12 @@ export interface TokensRow {
 }
 
 export class AuthService {
+    private salt: string = crypto.randomBytes(16).toString('hex');
     constructor(
         private readonly userRepo: UserRepository = new UserRepository(),
         private readonly refreshTokenRepo: RefreshTokenRepository = new RefreshTokenRepository(),
         private readonly passwordTokenRepo: PasswordTokenRepository = new PasswordTokenRepository(),
         private readonly db: Queryable = pool,
-        public salt: string
     ) {}
 
     async sign_up (

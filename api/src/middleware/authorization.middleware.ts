@@ -1,14 +1,12 @@
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, RequestHandler, Response } from 'express';
 import { logger } from '../lib/loggers/logger.ts';
 import { checkPermission } from "../config/permissions.ts";
 
 const log = logger.child({
-    component: "authentication.middleware"
+    component: "authorization.middleware"
 });
 
-const authorizationMiddleware = (req: Request, res: Response, next: NextFunction, actions: string) => {
+export const authorizationMiddleware = (action: string): RequestHandler => (req: Request, res: Response, next: NextFunction) => {
     const role = req.user?.role;
 
     if (!role) {
@@ -20,14 +18,14 @@ const authorizationMiddleware = (req: Request, res: Response, next: NextFunction
         });
         return res.status(403).json({ message: 'No role found in user object' });
     }
-    if (!checkPermission(role, actions)) {
+    if (!checkPermission(role, action)) {
         log.warn({
-            message: `User with role ${role} does not have permission to perform action ${actions}`,
+            message: `User with role ${role} does not have permission to perform action ${action}`,
             requestId: req.id,
             method: req.method,
             url: req.url
         });
-        return res.status(403).json({ message: `User with role ${role} does not have permission to perform action ${actions}` });
+        return res.status(403).json({ message: `User with role ${role} does not have permission to perform action ${action}` });
     }
     next();
-}
+};
