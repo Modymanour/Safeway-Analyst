@@ -46,7 +46,7 @@ export const openApiSpecification = {
   info: {
     title: "Safe Way Analytics API",
     version: "1.0.0",
-    description: "HTTP API for recording user visits and retrieving Safe Way analytics. Authentication and authorization are not currently implemented.",
+    description: "HTTP API for recording user visits, retrieving Safe Way analytics, and managing dashboard accounts. Protected dashboard and user-list routes require an access bearer token.",
   },
   servers: [{ url: "/", description: "Current API server" }],
   tags: [
@@ -153,7 +153,7 @@ export const openApiSpecification = {
       get: {
         tags: ["Dashboard"],
         summary: "Search dashboard users",
-        description: "This endpoint is not protected by authentication or authorization. Do not expose it publicly.",
+        description: "Requires an access bearer token and read permission.",
         parameters: [
           queryParameter("username", "Username filter; pass an empty string for no filter.", { type: "string", nullable: true }, true),
           queryParameter("email", "Email filter; pass an empty string for no filter.", { type: "string", format: "email", nullable: true }, true),
@@ -167,7 +167,7 @@ export const openApiSpecification = {
       get: {
         tags: ["Dashboard"],
         summary: "List dashboard users",
-        description: "This endpoint is not protected by authentication or authorization. Do not expose it publicly.",
+        description: "Requires an access bearer token and read permission. Password hashes are not included.",
         parameters: pagination,
         responses: { "200": success, "500": error },
       },
