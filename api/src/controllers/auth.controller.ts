@@ -40,7 +40,7 @@ export class AuthController{
             else{
                 logInfo(log, data, "create_admin", req);
             }
-            return res.status(201).json(data);
+            return res.status(data.status_code ?? 201).json(data);
         }catch (err){
             logError(log, err, "create_admin", req);
             return ControllerErrorHelper.handle(err, req, res, log, {
@@ -139,7 +139,7 @@ export class AuthController{
             else{
                 logInfo(log, data, "sign_in", req);
             }
-            return res.status(200).json(data);
+            return res.status(data.status_code ?? 200).json(data);
         } catch (err){
             logError(log, err, "sign_in", req);
             return ControllerErrorHelper.handle(err, req, res, log, {
@@ -175,7 +175,7 @@ export class AuthController{
             else{
                 logInfo(log, data, "sign_out", req);
             }
-            return res.status(200).json(data);
+            return res.status(data.status_code ?? 200).json(data);
         }catch (err){
             logError(log, err, "sign_out", req);
             return ControllerErrorHelper.handle(err, req, res, log, {
@@ -212,7 +212,7 @@ export class AuthController{
             else{
                 logInfo(log, data, "sign_in_with_refresh_token", req);
             }
-            return res.status(200).json(data);
+            return res.status(data.status_code ?? 200).json(data);
         }catch (err){
             logError(log, err, "sign_in_with_refresh_token", req);
             return ControllerErrorHelper.handle(err, req, res, log, {

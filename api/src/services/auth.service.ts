@@ -2,6 +2,7 @@ import { pool, Queryable } from "../db/pool.ts";
 import { UserRepository, UserRow } from "../repositories/user.repository.ts";
 import { RefreshTokenRepository } from "../repositories/refresh_token.repository.ts"
 import { PasswordTokenRepository } from "../repositories/password_token.repository.ts"
+import { hash_password, verify_password } from "../lib/hash.ts";
 import { NotFoundError, ValidationError } from '../lib/errors/errors.ts';
 import { logger } from "../lib/loggers/logger.ts";
 import { PaginatedResult } from "../repositories/types.ts";
@@ -49,7 +50,7 @@ export class AuthService {
         const user = await this.userRepo.create(this.db, {
             username: input.username,
             email: input.email,
-            password: this.hash_password(input.password),
+            password: hash_password(input.password),
             role
         });
         const { password: _password, ...account } = user;
@@ -110,7 +111,7 @@ export class AuthService {
             return response;
         }
 
-        const hashed_password = this.hash_password(input.password);
+        const hashed_password = hash_password(input.password);
         const user = await this.userRepo.create(this.db, {
             username: input.username,
             email: input.email,
@@ -213,7 +214,7 @@ export class AuthService {
             return response;
         }
 
-        const hashed_password = this.hash_password(input.password);
+        const hashed_password = hash_password(input.password);
         const user = await this.userRepo.create(this.db, {
             username: input.username,
             email: input.email,
@@ -270,6 +271,7 @@ export class AuthService {
         email: string,
         password: string
     ): Promise<Http_Response<TokensRow>> {
+        email = email.trim().toLowerCase();
         const user = await this.userRepo.getByEmail(this.db, email);
         if(!user){
             log.warn({
@@ -292,7 +294,7 @@ export class AuthService {
             return response;
         }
 
-        const is_valid_password = this.verify_password(user.password, password);
+        const is_valid_password = verify_password(user.password, password);
         if(!is_valid_password){
             log.warn({
                 action: "sign_in",
@@ -511,26 +513,6 @@ export class AuthService {
         });
         return response;
     }
-
-
-
-    hash_password(password: string) {
-        const salt = crypto.randomBytes(16).toString('hex');
-        const iterations = 100_000;
-        const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
-        return `pbkdf2$${iterations}$${salt}$${hash}`;
-    };
-
-    verify_password(user_password: string, password: string) {
-        const [algorithm, iterationText, salt, storedHash] = user_password.split('$');
-        const iterations = Number(iterationText);
-        if (algorithm !== 'pbkdf2' || !salt || !storedHash || !Number.isInteger(iterations) || iterations < 1) {
-            return false;
-        }
-        const actualHash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512');
-        const expectedHash = Buffer.from(storedHash, 'hex');
-        return actualHash.length === expectedHash.length && crypto.timingSafeEqual(actualHash, expectedHash);
-    };
 
     validate_password(password: string) {
         //Have at least one number

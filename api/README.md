@@ -21,9 +21,14 @@ The OpenAPI JSON is available at <http://localhost:4000/api-docs/openapi.json>. 
 | `GET` | `/api/dashboard/get-custom-month-range-data` | A contiguous month range |
 | `GET` | `/api/dashboard/get-specific-months-data` | Selected months' analytics |
 | `GET` | `/api/dashboard/search-users` | Search dashboard users |
-| `GET` | `/api/dashboard/get-all-users` | List dashboard users |
+| `GET` | `/api/dashboard/get-all-users` | List dashboard users (authenticated) |
+| `POST` | `/api/dashboard/sign-in` | Sign in and obtain access/refresh tokens |
+| `POST` | `/api/dashboard/sign-in-with-refresh-token` | Rotate tokens using a refresh token |
+| `POST` | `/api/dashboard/sign-out` | Revoke a refresh token |
+| `POST` | `/api/dashboard/create-user` | Create a user (admin permission required) |
+| `POST` | `/api/dashboard/create-admin` | Create an administrator (admin permission required) |
 
-> **Security:** Authentication and authorization are not currently implemented. The user endpoints can return sensitive account information. Do not expose them or this API to an untrusted network until access control and safe user response fields are implemented.
+> **Security:** Dashboard analytics and account-list endpoints require a bearer access token. Account creation requires an administrator. The API seeds an initial administrator from `ADMIN_EMAIL` and `ADMIN_PASSWORD` on startup when that email is not yet registered. Use strong secrets and HTTPS outside local development.
 
 ## Change log
 

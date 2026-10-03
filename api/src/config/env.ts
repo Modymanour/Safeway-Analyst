@@ -27,6 +27,10 @@ const envSchema = z.object({
     JWT_SECRET: z.string().min(1),
     
     JWT_REFRESH_SECRET: z.string().min(1),
+
+    ADMIN_EMAIL: z.email().trim().toLowerCase(),
+
+    ADMIN_PASSWORD: z.string()
 });
 
 dotenv.config();

@@ -9,6 +9,7 @@
     "test": "vitest run | pino-pretty",
     "test:integration": "TEST_DATABASE_URL=\"${TEST_DATABASE_URL:-$POSTGRESQL_CONNECTION_STRING}\" node --import tsx --test test/integration.test.ts",
     "db:migrate": "tsx src/db/migrate.ts up",
+    "db:seed-admin": "tsx src/db/seed-admin.ts",
     "db:migrate:status": "tsx src/db/migrate.ts status"
   },
   "keywords": [],
