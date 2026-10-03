@@ -45,6 +45,10 @@ router.get("/api/dashboard/get-all-users", authenticationMiddleware, authorizati
 
 router.post("/api/dashboard/sign-up", authController.sign_up);
 
+router.post("/api/dashboard/create-admin", authenticationMiddleware, authorizationMiddleware("create"), authController.create_admin);
+
+router.post("/api/dashboard/create-user", authenticationMiddleware, authorizationMiddleware("create"), authController.create_user);
+
 router.post("/api/dashboard/sign-in", authController.sign_in);
 
 router.post("/api/dashboard/sign-out", authController.sign_out);

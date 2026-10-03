@@ -14,6 +14,68 @@ export class AuthController{
     constructor(
         private readonly authService = new AuthService()
     ) {}
+    create_admin = async(
+        req: Request,
+        res: Response
+    ): Promise<Response> => {
+        const start = performance.now();
+
+        try{
+            const parse = registerSchema.safeParse(req.body);
+            if(!parse.success){
+                logZodError(log, parse.error, "create_admin", req, res);
+                return ControllerErrorHelper.handle(parse.error, req, res, log, {
+                    body: req.body,
+                    method: req.method,
+                    path: req.originalUrl,
+                });
+            }
+
+            const data = await this.authService.create_dashboard_user(parse.data, "admin");
+            data.url = req.originalUrl;
+            data.time_taken_ms = performance.now() - start;
+            if(data.time_taken_ms > 1000){
+                slowLog(log, data, "create_admin", req, res);
+            }
+            else{
+                logInfo(log, data, "create_admin", req);
+            }
+            return res.status(201).json(data);
+        }catch (err){
+            logError(log, err, "create_admin", req);
+            return ControllerErrorHelper.handle(err, req, res, log, {
+                body: req.body,
+                method: req.method,
+                path: req.originalUrl,
+            })
+        }
+    }
+
+    create_user = async(
+        req: Request,
+        res: Response
+    ): Promise<Response> => {
+        const start = performance.now();
+        try {
+            const parse = registerSchema.safeParse(req.body);
+            if (!parse.success) {
+                logZodError(log, parse.error, "create_user", req, res);
+                return ControllerErrorHelper.handle(parse.error, req, res, log, {
+                    body: req.body, method: req.method, path: req.originalUrl,
+                });
+            }
+            const data = await this.authService.create_dashboard_user(parse.data, "user");
+            data.url = req.originalUrl;
+            data.time_taken_ms = performance.now() - start;
+            logInfo(log, data, "create_user", req);
+            return res.status(data.status_code ?? 201).json(data);
+        } catch (err) {
+            logError(log, err, "create_user", req);
+            return ControllerErrorHelper.handle(err, req, res, log, {
+                body: req.body, method: req.method, path: req.originalUrl,
+            });
+        }
+    };
 
     sign_up = async(
         req: Request,
@@ -131,7 +193,7 @@ export class AuthController{
         const start = performance.now();
 
         try{
-            if(!req.params.refresh_token){
+            if(!req.body.refresh_token){
                 logError(log, new ValidationError("refresh token is required"), "sign_in_with_refresh_token", req);
                 return ControllerErrorHelper.handle(new ValidationError("refresh token is required"), req, res, log, {
                     body: req.body,
@@ -139,7 +201,7 @@ export class AuthController{
                     path: req.originalUrl,
                 });
             }
-            const refresh_token = req.params.refresh_token;
+            const refresh_token = req.body.refresh_token;
 
             const data = await this.authService.sign_in_with_refresh_token(refresh_token as string);
             data.url = req.originalUrl;

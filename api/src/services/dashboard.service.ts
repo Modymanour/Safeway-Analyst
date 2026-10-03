@@ -25,6 +25,13 @@ export interface MonthsComparison{
     end_date: Date
 }
 
+type DashboardUser = Omit<UserRow, "password">;
+
+function withoutPassword(user: UserRow): DashboardUser {
+    const { password: _password, ...publicUser } = user;
+    return publicUser;
+}
+
 function toMonthData(data: UserVisitStatsData): MonthData {
     return {
         month_name: data.date_start.toLocaleString("en-US", { month: "long" }),
@@ -359,10 +366,11 @@ export class DashboardService{
         },
         page: number,
         pageSize: number
-    ): Promise<Http_Response<PaginatedResult<UserRow>>>{
-        const data = await this.userRepo.search(this.db, filters, page, pageSize);
+    ): Promise<Http_Response<PaginatedResult<DashboardUser>>>{
+        const result = await this.userRepo.search(this.db, filters, page, pageSize);
+        const data = { ...result, data: result.data.map(withoutPassword) };
 
-        const response: Http_Response<PaginatedResult<UserRow>> = {
+        const response: Http_Response<PaginatedResult<DashboardUser>> = {
             status: "Successful",
             status_code: 200,
             data: data,
@@ -385,10 +393,11 @@ export class DashboardService{
     async getUsers(
         page: number,
         pageSize: number
-    ): Promise<Http_Response<PaginatedResult<UserRow>>>{
-        const data = await this.userRepo.getAll(this.db, page, pageSize);
+    ): Promise<Http_Response<PaginatedResult<DashboardUser>>>{
+        const result = await this.userRepo.getAll(this.db, page, pageSize);
+        const data = { ...result, data: result.data.map(withoutPassword) };
 
-        const response: Http_Response<PaginatedResult<UserRow>> = {
+        const response: Http_Response<PaginatedResult<DashboardUser>> = {
             status: "Successful",
             status_code: 200,
             data: data,

@@ -18,8 +18,9 @@ export interface TokensRow {
     refresh_token: string | null
 }
 
+export type DashboardAccount = Omit<UserRow, "password">;
+
 export class AuthService {
-    private salt: string = crypto.randomBytes(16).toString('hex');
     constructor(
         private readonly userRepo: UserRepository = new UserRepository(),
         private readonly refreshTokenRepo: RefreshTokenRepository = new RefreshTokenRepository(),
@@ -27,6 +28,140 @@ export class AuthService {
         private readonly db: Queryable = pool,
     ) {}
 
+    async create_dashboard_user(
+        input: { username: string; email: string; password: string },
+        role: "admin" | "user"
+    ): Promise<Http_Response<DashboardAccount | null>> {
+        const user_exists = await this.userRepo.getByEmail(this.db, input.email);
+        if (user_exists) {
+            return {
+                status: "Failed", msg: "Email already in use", status_code: 400, data: null,
+                request_id: null, url: null, time_taken_ms: null
+            };
+        }
+        if (!this.validate_password(input.password)) {
+            return {
+                status: "Failed", msg: "Password does not meet requirements", status_code: 400, data: null,
+                request_id: null, url: null, time_taken_ms: null
+            };
+        }
+
+        const user = await this.userRepo.create(this.db, {
+            username: input.username,
+            email: input.email,
+            password: this.hash_password(input.password),
+            role
+        });
+        const { password: _password, ...account } = user;
+        return {
+            status: "Success", msg: "User created successfully", status_code: 201, data: account,
+            request_id: null, url: null, time_taken_ms: null
+        };
+    }
+
+    async create_admin(
+        input: {
+            username: string,
+            email: string,
+            password: string
+        }
+    ): Promise<Http_Response<TokensRow>>{
+        const user_exists = await this.userRepo.getByEmail(this.db, input.email);
+        if(user_exists){
+            log.warn({
+                action: "sign_up",
+                msg: "email already in use",
+                email: input.email,
+            });
+            const response: Http_Response<TokensRow> = {
+                status: "Failed",
+                msg: "Email already in use",
+                status_code: 400,
+                data: {
+                    access_token: null,
+                    refresh_token: null
+                },
+                request_id: null,
+                url: null,
+                time_taken_ms: null
+            };
+            return response;
+        }
+
+        const password_valid = this.validate_password(input.password);
+        if(!password_valid){
+            log.warn({
+                action: "sign_up",
+                msg: "Password does not meet requirements",
+                email: input.email,
+            });
+            const response: Http_Response<TokensRow> = {
+                status: "Failed",
+                msg: "Password does not meet requirements",
+                status_code: 400,
+                data: {
+                    access_token: null,
+                    refresh_token: null
+                },
+                request_id: null,
+                url: null,
+                time_taken_ms: null
+            };
+            return response;
+        }
+
+        const hashed_password = this.hash_password(input.password);
+        const user = await this.userRepo.create(this.db, {
+            username: input.username,
+            email: input.email,
+            password: hashed_password,
+            role: "admin"
+        });
+
+        const now = new Date();
+
+        const payload: Payload = {
+            sub: user.id.toString(),
+            email: user.email,
+            username: user.username,
+            tokenType: "access",
+            role: user.role,
+            iat: Math.floor(now.getTime() / 1000),
+            iss: "safeway-api"
+        };
+        const refresh_payload: Payload = {
+            ...payload,
+            tokenType: "refresh"
+        }
+        const access_token = generateAccessToken(payload);
+        const refresh_token = generateRefreshToken(refresh_payload);
+
+        await this.refreshTokenRepo.create(this.db,{
+            user_id: user.id,
+            token: refresh_token,
+            expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+        });
+
+        const response: Http_Response<TokensRow> = {
+            status: "Success",
+            msg: "User created successfully",
+            status_code: 201,
+            data: {
+                access_token,
+                refresh_token
+            },
+            request_id: null,
+            url: null,
+            time_taken_ms: null
+        };
+        log.info({
+            action: "sign_up",
+            msg: "User created successfully",
+            user_id: user.id,
+            email: user.email,
+        });
+        return response;
+    };
     async sign_up (
         input: {
             username: string,
@@ -91,15 +226,15 @@ export class AuthService {
         const payload: Payload = {
             sub: user.id.toString(),
             email: user.email,
-            username: user.email,
-            tokenType: "access_token",
-            role: "user",
-            iat: now.toISOString(),
+            username: user.username,
+            tokenType: "access",
+            role: user.role,
+            iat: Math.floor(now.getTime() / 1000),
             iss: "safeway-api"
         };
         const refresh_payload: Payload = {
             ...payload,
-            tokenType: "refresh_token"
+            tokenType: "refresh"
         }
         const access_token = generateAccessToken(payload);
         const refresh_token = generateRefreshToken(refresh_payload);
@@ -107,7 +242,7 @@ export class AuthService {
         await this.refreshTokenRepo.create(this.db,{
             user_id: user.id,
             token: refresh_token,
-            expires_at: now.setDate(now.getDate() + 7) as unknown as Date
+            expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
         });
 
         const response: Http_Response<TokensRow> = {
@@ -184,15 +319,15 @@ export class AuthService {
         const payload: Payload = {
             sub: user.id.toString(),
             email: user.email,
-            username: user.email,
-            tokenType: "access_token",
-            role: "user",
-            iat: now.toISOString(),
+            username: user.username,
+            tokenType: "access",
+            role: user.role,
+            iat: Math.floor(now.getTime() / 1000),
             iss: "safeway-api"
         };
         const refresh_payload: Payload = {
             ...payload,
-            tokenType: "refresh_token"
+            tokenType: "refresh"
         }
         const access_token = generateAccessToken(payload);
         const refresh_token = generateRefreshToken(refresh_payload);
@@ -202,12 +337,12 @@ export class AuthService {
             await this.refreshTokenRepo.create(this.db,{
                 user_id: user.id,
                 token: refresh_token,
-                expires_at: now.setDate(now.getDate() + 7) as unknown as Date
+                expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
             });
         } else {
             await this.refreshTokenRepo.update(this.db, refresh_token_exists.id, {
                 token: refresh_token,
-                expires_at: now.setDate(now.getDate() + 7) as unknown as Date
+                expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
             });
         }
 
@@ -299,6 +434,19 @@ export class AuthService {
             return response;
         }
 
+        if (new Date(refresh_token_exists.expires_at).getTime() <= Date.now()) {
+            await this.refreshTokenRepo.delete(this.db, refresh_token_exists.id);
+            return {
+                status: "Failed",
+                msg: "Refresh token has expired",
+                status_code: 401,
+                data: { access_token: null, refresh_token: null },
+                request_id: null,
+                url: null,
+                time_taken_ms: null
+            };
+        }
+
         const user = await this.userRepo.getById(this.db, refresh_token_exists.user_id);
         if(!user){
             log.warn({
@@ -326,21 +474,21 @@ export class AuthService {
         const payload: Payload = {
             sub: user.id.toString(),
             email: user.email,
-            username: user.email,
-            tokenType: "access_token",
-            role: "user",
-            iat: now.toISOString(),
+            username: user.username,
+            tokenType: "access",
+            role: user.role,
+            iat: Math.floor(now.getTime() / 1000),
             iss: "safeway-api"
         };
         const refresh_payload: Payload = {
             ...payload,
-            tokenType: "refresh_token"
+            tokenType: "refresh"
         }
         const access_token = generateAccessToken(payload);
         const refresh_token_string = generateRefreshToken(refresh_payload);
         await this.refreshTokenRepo.update(this.db, refresh_token_exists.id, {
             token: refresh_token_string,
-            expires_at: now.setDate(now.getDate() + 7) as unknown as Date
+            expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
         });
 
         const response: Http_Response<TokensRow> = {
@@ -367,19 +515,21 @@ export class AuthService {
 
 
     hash_password(password: string) {
-        // Creating a unique salt for a particular user
-        this.salt = crypto.randomBytes(16).toString('hex');
-
-        // Hashing user's salt and password with 1000 iterations,
-        //64 length and sha512 digest
-        return crypto.pbkdf2Sync(password, this.salt,
-            1000, 64, `sha512`).toString(`hex`);
+        const salt = crypto.randomBytes(16).toString('hex');
+        const iterations = 100_000;
+        const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
+        return `pbkdf2$${iterations}$${salt}$${hash}`;
     };
 
-    verify_password(user_password: string,password: string) {
-        let  hash = crypto.pbkdf2Sync(password,
-            this.salt, 1000, 64, `sha512`).toString(`hex`);
-        return user_password === hash;
+    verify_password(user_password: string, password: string) {
+        const [algorithm, iterationText, salt, storedHash] = user_password.split('$');
+        const iterations = Number(iterationText);
+        if (algorithm !== 'pbkdf2' || !salt || !storedHash || !Number.isInteger(iterations) || iterations < 1) {
+            return false;
+        }
+        const actualHash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512');
+        const expectedHash = Buffer.from(storedHash, 'hex');
+        return actualHash.length === expectedHash.length && crypto.timingSafeEqual(actualHash, expectedHash);
     };
 
     validate_password(password: string) {
@@ -387,8 +537,8 @@ export class AuthService {
         //Have at least one uppercase letter
         //Have at least one lowercase letter
         //Have at least one special character ($, @, #, %)
-        //Be between 6 and 20 characters in length
-        const password_regex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[$@#%]).{6,20}$/;
+        // Require mixed case, a number, a supported symbol, and 8-128 characters.
+        const password_regex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[$@#%]).{8,128}$/;
         return password_regex.test(password);
     }
 }

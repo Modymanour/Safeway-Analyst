@@ -1,6 +1,7 @@
-import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users as UsersIcon, ShieldCheck } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { LayoutDashboard, LogOut, ShieldCheck, Users as UsersIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/AuthContext";
 
 const navItems = [
   { to: "/", label: "Analytics", icon: LayoutDashboard, end: true },
@@ -8,6 +9,14 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <aside className="flex w-16 shrink-0 flex-col border-r border-sidebar-border bg-sidebar sm:w-56 lg:w-64">
       <div className="border-b border-sidebar-border px-3 py-5 sm:px-5 sm:py-7">
@@ -52,10 +61,13 @@ export default function Sidebar() {
             <ShieldCheck className="h-4 w-4" />
           </div>
           <div className="hidden min-w-0 leading-tight sm:block">
-            <p className="truncate text-sm text-sidebar-foreground">Analytics workspace</p>
-            <p className="text-[11px] uppercase tracking-wider text-primary/80">API connected</p>
+            <p className="truncate text-sm text-sidebar-foreground">{user?.username || user?.email || "Signed in"}</p>
+            <p className="text-[11px] uppercase tracking-wider text-primary/80">{user?.role || "Account"}</p>
           </div>
         </div>
+        <button type="button" onClick={handleLogout} className="mt-2 flex w-full items-center justify-center gap-3 rounded-lg px-2 py-2 text-xs text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground sm:justify-start sm:px-3">
+          <LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign out</span>
+        </button>
       </div>
     </aside>
   );

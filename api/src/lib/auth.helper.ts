@@ -5,9 +5,9 @@ export interface Payload {
     sub: string, // user id
     username: string,
     email: string,
-    tokenType: string, // access or refresh
+    tokenType: 'access' | 'refresh',
     role: string
-    iat: string,
+    iat?: number,
     iss: string,
 }
 

@@ -25,4 +25,13 @@ The container image builds the static bundle and serves it with nginx. Nginx for
 ## Available screens
 
 - Analytics with selectable date periods, summary KPI cards, monthly comparisons, CSV export, traffic sources, devices, and location ranking.
-- A Users information page that describes backend auth/user-management prerequisites. No unsupported or insecure user-management calls are made.
+- A sign-in screen for dashboard accounts.
+- A protected Users page with paginated account listing; administrators can create user or administrator accounts.
+
+## Authentication and accounts
+
+All dashboard pages require a signed-in account. Sign in with the email address and password provisioned by an administrator. API requests include the short-lived access token as a bearer token. The dashboard keeps the rotating refresh token in browser local storage, uses it to restore a session or renew an expired access token, and signs out through the API before clearing the local session.
+
+Only accounts with the `admin` role see the account-creation form. New passwords must be 8–128 characters and include an uppercase letter, a lowercase letter, a number, and one of `$`, `@`, `#`, or `%`. The API enforces authorization independently of the UI.
+
+The API must be running and its authentication secrets and database configured before sign-in. The API currently protects user creation behind an existing administrator; provision the first administrator through a trusted database/bootstrap process before using the dashboard. For production, serve the dashboard and API over HTTPS and consider moving refresh-token storage to secure, HTTP-only cookies.
