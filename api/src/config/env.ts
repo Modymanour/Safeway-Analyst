@@ -33,11 +33,14 @@ const envSchema = z.object({
     ADMIN_PASSWORD: z.string()
 });
 
-dotenv.config();
+dotenv.config({
+    path: "./.env"
+});
 
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
+    console.error()
     console.error(parsedEnv.error.format());
     throw new Error("Invalid environment configuration");
 }

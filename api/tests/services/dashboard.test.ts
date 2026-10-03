@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import type { Queryable } from "../../src/db/pool.ts";
 import type { UserVisitsStatsRepository, UserVisitStatsData } from "../../src/repositories/user_visits_stats.repository.ts";
 import { ValidationError } from "../../src/lib/errors/errors.ts";
@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 describe("DashboardService month data flow", () => {
-    it("loads and returns all 12 months for the current year", async () => {
+    test("loads and returns all 12 months for the current year", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2025-06-15T12:00:00.000Z"));
         const { service, repository } = createService();
@@ -69,7 +69,7 @@ describe("DashboardService month data flow", () => {
         expect(response.data?.months[5].data.summary.total_visits).toBe(3);
     });
 
-    it("loads every month in an inclusive custom month range", async () => {
+    test("loads every month in an inclusive custom month range", async () => {
         const { service, repository } = createService();
 
         const response = await service.getCustomMonthRangeData(2025, 1, 2025, 3);
@@ -94,7 +94,7 @@ describe("DashboardService month data flow", () => {
         );
     });
 
-    it("loads distinct requested months, including December across a year boundary", async () => {
+    test("loads distinct requested months, including December across a year boundary", async () => {
         const { service, repository } = createService();
 
         const response = await service.getSpecificMonthsData([
@@ -125,7 +125,7 @@ describe("DashboardService month data flow", () => {
         expect(response.data?.end_date).toEqual(new Date(2025, 4, 1));
     });
 
-    it("rejects invalid custom ranges and invalid requested months", async () => {
+    test("rejects invalid custom ranges and invalid requested months", async () => {
         const { service, repository } = createService();
 
         await expect(service.getCustomMonthRangeData(2025, 4, 2025, 2))

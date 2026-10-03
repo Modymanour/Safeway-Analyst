@@ -5,10 +5,8 @@ import { PasswordTokenRepository } from "../repositories/password_token.reposito
 import { hash_password, verify_password } from "../lib/hash.ts";
 import { NotFoundError, ValidationError } from '../lib/errors/errors.ts';
 import { logger } from "../lib/loggers/logger.ts";
-import { PaginatedResult } from "../repositories/types.ts";
 import { Http_Response } from "../lib/responses.ts";
 import { generateAccessToken, generateRefreshToken, Payload } from "../lib/auth.helper.ts";
-import crypto from "crypto";
 
 const log = logger.child({
     component: "AuthService",
@@ -35,16 +33,10 @@ export class AuthService {
     ): Promise<Http_Response<DashboardAccount | null>> {
         const user_exists = await this.userRepo.getByEmail(this.db, input.email);
         if (user_exists) {
-            return {
-                status: "Failed", msg: "Email already in use", status_code: 400, data: null,
-                request_id: null, url: null, time_taken_ms: null
-            };
+            throw new ValidationError("User already exists");
         }
         if (!this.validate_password(input.password)) {
-            return {
-                status: "Failed", msg: "Password does not meet requirements", status_code: 400, data: null,
-                request_id: null, url: null, time_taken_ms: null
-            };
+            throw new ValidationError("Password does not meet minimum requirements");
         }
 
         const user = await this.userRepo.create(this.db, {
@@ -74,19 +66,7 @@ export class AuthService {
                 msg: "email already in use",
                 email: input.email,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "Email already in use",
-                status_code: 400,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new ValidationError("User already exists");
         }
 
         const password_valid = this.validate_password(input.password);
@@ -96,19 +76,7 @@ export class AuthService {
                 msg: "Password does not meet requirements",
                 email: input.email,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "Password does not meet requirements",
-                status_code: 400,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new ValidationError("Password does not meet minimum requirements");
         }
 
         const hashed_password = hash_password(input.password);
@@ -177,19 +145,7 @@ export class AuthService {
                 msg: "email already in use",
                 email: input.email,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "Email already in use",
-                status_code: 400,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new ValidationError("User already exists");
         }
 
         const password_valid = this.validate_password(input.password);
@@ -199,19 +155,7 @@ export class AuthService {
                 msg: "Password does not meet requirements",
                 email: input.email,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "Password does not meet requirements",
-                status_code: 400,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new ValidationError("Password does not meet minimum requirements");
         }
 
         const hashed_password = hash_password(input.password);
@@ -279,19 +223,7 @@ export class AuthService {
                 msg: "User not found",
                 email: email,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "User not found",
-                status_code: 404,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new NotFoundError("User not found");
         }
 
         const is_valid_password = verify_password(user.password, password);
@@ -301,19 +233,7 @@ export class AuthService {
                 msg: "Invalid password",
                 email: email,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "Invalid password",
-                status_code: 401,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new ValidationError("Invalid Password");
         }
 
         const now = new Date();
@@ -370,7 +290,6 @@ export class AuthService {
     }
 
     async sign_out (
-        user_id: number,
         refresh_token: string
     ): Promise<Http_Response<null>> {
         const refresh_token_exists = await this.refreshTokenRepo.getByToken(this.db, refresh_token);
@@ -378,18 +297,8 @@ export class AuthService {
             log.warn({
                 action: "sign_out",
                 msg: "Refresh token not found",
-                user_id: user_id,
             });
-            const response: Http_Response<null> = {
-                status: "Failed",
-                msg: "Refresh token not found",
-                status_code: 404,
-                data: null,
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new NotFoundError("Refresh Token not found");
         }
 
         await this.refreshTokenRepo.delete(this.db, refresh_token_exists.id);
@@ -406,7 +315,6 @@ export class AuthService {
         log.info({
             action: "sign_out",
             msg: "User signed out successfully",
-            user_id: user_id,
         });
         return response;
     }
@@ -421,32 +329,12 @@ export class AuthService {
                 msg: "Refresh token not found",
                 refresh_token: refresh_token,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "Refresh token not found",
-                status_code: 404,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new NotFoundError("Refresh Token not found");
         }
 
         if (new Date(refresh_token_exists.expires_at).getTime() <= Date.now()) {
             await this.refreshTokenRepo.delete(this.db, refresh_token_exists.id);
-            return {
-                status: "Failed",
-                msg: "Refresh token has expired",
-                status_code: 401,
-                data: { access_token: null, refresh_token: null },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
+            throw new ValidationError("Refresh Token expired");
         }
 
         const user = await this.userRepo.getById(this.db, refresh_token_exists.user_id);
@@ -456,19 +344,7 @@ export class AuthService {
                 msg: "User not found",
                 user_id: refresh_token_exists.user_id,
             });
-            const response: Http_Response<TokensRow> = {
-                status: "Failed",
-                msg: "User not found",
-                status_code: 404,
-                data: {
-                    access_token: null,
-                    refresh_token: null
-                },
-                request_id: null,
-                url: null,
-                time_taken_ms: null
-            };
-            return response;
+            throw new NotFoundError("User not found");
         }
 
         const now = new Date();
@@ -518,9 +394,9 @@ export class AuthService {
         //Have at least one number
         //Have at least one uppercase letter
         //Have at least one lowercase letter
-        //Have at least one special character ($, @, #, %)
+        //Have at least one special character ($, @, #, %, _, -)
         // Require mixed case, a number, a supported symbol, and 8-128 characters.
-        const password_regex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[$@#%]).{8,128}$/;
+        const password_regex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[$@#%_-]).{8,128}$/;
         return password_regex.test(password);
     }
 }
