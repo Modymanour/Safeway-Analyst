@@ -74,6 +74,34 @@ export class RefreshTokenRepository {
             data: input
         }, result ? "success": "not found")
         return result ?? null;
+    };
+
+    async update_with_user_id(
+        db: Queryable,
+        user_id: UUID,
+        input:{
+            token?: string | null,
+            expires_at?: Date | null,
+        }
+    ): Promise<RefreshTokenRow | null> {
+        const result = await queryOne<RefreshTokenRow>(
+            db,
+            `UPDATE refresh_tokens SET
+             token          = COALESCE($1, token),
+             expires_at     = COALESCE($2, expires_at)
+             WHERE user_id = $3
+             RETURNING ${REFRESH_TOKEN_COLUMNS}`,
+             [
+                input.token ?? null,
+                input.expires_at ?? null,
+                user_id
+             ]
+        );
+        log.debug({
+            action: "update_with_user_id",
+            data: input
+        }, result ? "success": "not found")
+        return result ?? null;
     }
 
     async delete(

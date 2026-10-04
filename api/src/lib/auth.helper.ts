@@ -16,9 +16,9 @@ const createToken = (payload: Payload, secret: string, expiresIn: jwt.SignOption
 }
 
 export const generateAccessToken = (payload: Payload) => {
-    return createToken(payload, env.JWT_SECRET, '15m');
+    return createToken({...payload, tokenType: "access"}, env.JWT_SECRET, '15m');
 }
 
 export const generateRefreshToken = (payload: Payload) => {
-    return createToken(payload, env.JWT_REFRESH_SECRET, '7d');
+    return createToken({...payload, tokenType: "refresh"}, env.JWT_REFRESH_SECRET, '7d');
 }

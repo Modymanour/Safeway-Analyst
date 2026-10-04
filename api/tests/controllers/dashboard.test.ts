@@ -15,6 +15,7 @@ const createDashboardService = () => ({
     getCustomMonthData: vi.fn(),
     getCustomMonthRangeData: vi.fn(),
     getSpecificMonthsData: vi.fn(),
+    delete: vi.fn(),
     getUsers: vi.fn(),
     searchUsers: vi.fn()
 }) satisfies {
@@ -333,4 +334,71 @@ describe("Dashboard Controller", () => {
             assertSuccess(res, 200);
         });
     });
+
+    describe("Deleting a user", () => {
+        test("User deleting their own account", async () =>{
+            service.delete.mockResolvedValue(mockHttpResult(200, "success"));
+            const req = mockRequest({
+                method: "POST",
+                originalUrl: "/api/user-visits",
+                query: {
+                    user_id: "userid",
+                },
+                user: {
+                    role: "user",
+                    sub: "sub"
+                }
+            });
+
+            const res = mockResponse();
+                
+            const controller = new DashboardController(service as any);
+            await controller.delete(req, res);
+
+            expect(service.delete).toHaveBeenCalledWith("sub");
+        });
+
+        test("Admin deleting another user", async () => {
+            service.delete.mockResolvedValue(mockHttpResult(200, "success"));
+            const req = mockRequest({
+                method: "POST",
+                originalUrl: "/api/user-visits",
+                query: {
+                    user_id: "userid",
+                },
+                user: {
+                    role: "admin",
+                    sub: "sub"
+                }
+            });
+
+            const res = mockResponse();
+                
+            const controller = new DashboardController(service as any);
+            await controller.delete(req, res);
+
+            expect(service.delete).toHaveBeenCalledWith("userid");
+        });
+
+        test("Admin deleting their own account", async () => {
+            service.delete.mockResolvedValue(mockHttpResult(200, "success"));
+            const req = mockRequest({
+                method: "POST",
+                originalUrl: "/api/user-visits",
+                query: {
+                },
+                user: {
+                    role: "admin",
+                    sub: "sub"
+                }
+            });
+
+            const res = mockResponse();
+                
+            const controller = new DashboardController(service as any);
+            await controller.delete(req, res);
+
+            expect(service.delete).toHaveBeenCalledWith("sub");
+        })
+    })
 });

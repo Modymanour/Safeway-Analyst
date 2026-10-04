@@ -35,6 +35,8 @@ router.get("/api/dashboard/get-custom-month-range-data", authenticationMiddlewar
 
 router.get("/api/dashboard/get-specific-months-data", authenticationMiddleware, authorizationMiddleware('read'), dashboardController.getSpecificMonthsData);
 
+router.get("/api/dashboard/delete-user", authenticationMiddleware, authorizationMiddleware("delete_user"), dashboardController.delete);
+
 router.get("/api/dashboard/search-users", authenticationMiddleware, authorizationMiddleware('read'), dashboardController.searchUsers);
 
 router.get("/api/dashboard/get-all-users", authenticationMiddleware, authorizationMiddleware('read'), dashboardController.getUsers);
@@ -52,5 +54,7 @@ router.post("/api/dashboard/create-user", authenticationMiddleware, authorizatio
 router.post("/api/dashboard/sign-in", authController.sign_in);
 
 router.post("/api/dashboard/sign-out", authController.sign_out);
+
+router.put("/api/dashboard/change-role", authenticationMiddleware, authorizationMiddleware("change_permissions"), authController.change_role);
 
 router.post("/api/dashboard/sign-in-with-refresh-token", authController.sign_in_with_refresh_token);

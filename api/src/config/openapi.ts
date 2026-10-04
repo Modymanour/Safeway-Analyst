@@ -46,7 +46,7 @@ export const openApiSpecification = {
   info: {
     title: "Safe Way Analytics API",
     version: "1.0.0",
-    description: "HTTP API for recording user visits, retrieving Safe Way analytics, and managing dashboard accounts. Protected dashboard and user-list routes require an access bearer token.",
+    description: "HTTP API for recording user visits, retrieving Safe Way analytics, and managing dashboard accounts. Protected dashboard and user-management routes require an access bearer token.",
   },
   servers: [{ url: "/", description: "Current API server" }],
   tags: [
@@ -171,6 +171,34 @@ export const openApiSpecification = {
         parameters: pagination,
         responses: { "200": success, "500": error },
       },
+    },
+    "/api/dashboard/delete-user": {
+      get: {
+        tags: ["Dashboard"],
+        summary: "Delete a dashboard account",
+        description: "Requires an access bearer token and delete_user permission. Regular users can delete only their own account; admins can delete their own account or the optional user_id target.",
+        security: [{ bearerAuth: [] }],
+        parameters: [queryParameter("user_id", "Optional target account UUID. Only admins may use this to delete another account; omitted means the authenticated account.", { type: "string", format: "uuid" })],
+        responses: { "200": success, "400": error, "401": error, "403": error, "404": error, "500": error },
+      },
+    },
+    "/api/dashboard/change-role": {
+      put: {
+        tags: ["Dashboard"],
+        summary: "Change a dashboard account role",
+        description: "Requires an access bearer token and administrator change_permissions permission. Only the user and admin roles are supported. The response includes replacement tokens for the account whose role changed.",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          queryParameter("user_id", "UUID of the account whose role will change.", { type: "string", format: "uuid" }, true),
+          queryParameter("role", "New account role.", { type: "string", enum: ["user", "admin"] }, true),
+        ],
+        responses: { "200": success, "400": error, "401": error, "403": error, "404": error, "500": error },
+      },
+    },
+  },
+  components: {
+    securitySchemes: {
+      bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
     },
   },
 } as const;

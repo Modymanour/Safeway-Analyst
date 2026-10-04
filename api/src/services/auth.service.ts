@@ -7,6 +7,7 @@ import { NotFoundError, ValidationError } from '../lib/errors/errors.ts';
 import { logger } from "../lib/loggers/logger.ts";
 import { Http_Response } from "../lib/responses.ts";
 import { generateAccessToken, generateRefreshToken, Payload } from "../lib/auth.helper.ts";
+import { UUID } from "node:crypto";
 
 const log = logger.child({
     component: "AuthService",
@@ -98,12 +99,9 @@ export class AuthService {
             iat: Math.floor(now.getTime() / 1000),
             iss: "safeway-api"
         };
-        const refresh_payload: Payload = {
-            ...payload,
-            tokenType: "refresh"
-        }
+
         const access_token = generateAccessToken(payload);
-        const refresh_token = generateRefreshToken(refresh_payload);
+        const refresh_token = generateRefreshToken(payload);
 
         await this.refreshTokenRepo.create(this.db,{
             user_id: user.id,
@@ -177,12 +175,8 @@ export class AuthService {
             iat: Math.floor(now.getTime() / 1000),
             iss: "safeway-api"
         };
-        const refresh_payload: Payload = {
-            ...payload,
-            tokenType: "refresh"
-        }
         const access_token = generateAccessToken(payload);
-        const refresh_token = generateRefreshToken(refresh_payload);
+        const refresh_token = generateRefreshToken(payload);
 
         await this.refreshTokenRepo.create(this.db,{
             user_id: user.id,
@@ -247,12 +241,8 @@ export class AuthService {
             iat: Math.floor(now.getTime() / 1000),
             iss: "safeway-api"
         };
-        const refresh_payload: Payload = {
-            ...payload,
-            tokenType: "refresh"
-        }
         const access_token = generateAccessToken(payload);
-        const refresh_token = generateRefreshToken(refresh_payload);
+        const refresh_token = generateRefreshToken(payload);
 
         const refresh_token_exists = await this.refreshTokenRepo.getByUserId(this.db, user.id);
         if(!refresh_token_exists){
@@ -358,12 +348,8 @@ export class AuthService {
             iat: Math.floor(now.getTime() / 1000),
             iss: "safeway-api"
         };
-        const refresh_payload: Payload = {
-            ...payload,
-            tokenType: "refresh"
-        }
         const access_token = generateAccessToken(payload);
-        const refresh_token_string = generateRefreshToken(refresh_payload);
+        const refresh_token_string = generateRefreshToken(payload);
         await this.refreshTokenRepo.update(this.db, refresh_token_exists.id, {
             token: refresh_token_string,
             expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -387,6 +373,59 @@ export class AuthService {
             user_id: user.id,
             email: user.email,
         });
+        return response;
+    }
+    async change_role(
+        user_id: UUID,
+        new_role: 'user' | 'admin'
+    ): Promise<Http_Response<TokensRow>>{
+        const user = await this.userRepo.getById(this.db, user_id);
+
+        if(user?.role === new_role){
+            log.debug({
+                action: "change_role",
+                msg: "given the same role as the current role",
+                user_id: user.id,
+                email: user.email,
+            });
+            throw new ValidationError("given the same role as the current role");
+        }
+
+        const result = await this.userRepo.update(this.db, user_id, { 
+            role: new_role
+        });
+
+        if(!result) throw new ValidationError("Something happened");
+        const payload: Payload = {
+            sub: result.id.toString(),
+            email: result.email,
+            username: result.username,
+            tokenType: "access",
+            role: result.role,
+            iat: Math.floor(new Date().getTime() / 1000),
+            iss: "safeway-api"
+        };
+
+        const access_token = generateAccessToken(payload);
+        const refresh_token_string = generateRefreshToken(payload);
+
+        await this.refreshTokenRepo.update_with_user_id(this.db, result.id,  {
+            token: refresh_token_string,
+            expires_at: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+        })
+
+        const response: Http_Response<TokensRow> = {
+            status: "Success",
+            msg: "User signed in successfully",
+            status_code: 200,
+            data: {
+                access_token,
+                refresh_token: refresh_token_string
+            },
+            request_id: null,
+            url: null,
+            time_taken_ms: null
+        };
         return response;
     }
 

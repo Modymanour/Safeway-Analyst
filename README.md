@@ -39,7 +39,7 @@ The API routes already use `/api`, and the dashboard routes/assets use `/dashboa
 
 If Caddy itself runs in Docker, attach it to this Compose project's network and proxy to `dashboard:4173` and `api:4000` instead. Do not use `localhost` from inside the Caddy container; there, localhost refers to Caddy itself. After changing Compose settings, recreate the services with `docker compose up -d --build`.
 
-Interactive API documentation is available at <http://localhost:4000/api-docs/> when the API is running; its OpenAPI JSON is at <http://localhost:4000/api-docs/openapi.json>. It includes the current visit and dashboard routes.
+Interactive API documentation is available at <http://localhost:4000/api-docs/> when the API is running; its OpenAPI JSON is at <http://localhost:4000/api-docs/openapi.json>. It documents the visit, analytics, and account-management routes.
 
 ## Local development without Docker
 
@@ -92,9 +92,24 @@ The dashboard currently uses the backend month-range and selected-month endpoint
 
 Analytics summary counts and traffic/device/location breakdowns are mapped from the API response. The backend records visits, not general page views, so the dashboard labels this measure **Visits**. Location data currently has labels/counts but no coordinates, so it is displayed as a location ranking instead of a geographic map.
 
-## Authentication and user management status
+## Authentication and user management
 
-The current API does not implement login, access tokens, authorization, invitations, or user role updates. The dashboard does not pretend to authenticate users; the Users page explains this limitation and does not call the unprotected user-list routes. The existing user API must not be exposed publicly until authentication/authorization is implemented and password hashes are excluded from all user responses. Keep the dashboard/API on a trusted local or private network in the meantime.
+The dashboard signs in through the API and sends an access bearer token to protected analytics and account-management routes. Refresh tokens are used to renew sessions. Seed the first administrator with `cd api && npm run db:seed-admin`; administrators can create dashboard accounts, change account roles, and delete any account. Regular users can view the dashboard and delete only their own account. Password hashes are excluded from user-list responses.
+
+Account-management routes:
+
+| Method | Route | Access and behavior |
+| --- | --- | --- |
+| `POST` | `/api/dashboard/sign-in` | Public sign in with `{ "email", "password" }`; returns access and refresh tokens. |
+| `POST` | `/api/dashboard/sign-in-with-refresh-token` | Public token refresh using a JSON body containing `refresh_token`. |
+| `POST` | `/api/dashboard/sign-out` | Invalidates the supplied refresh token. |
+| `GET` | `/api/dashboard/get-all-users?page=1&pageNumber=10` | Authenticated users with read permission; returns paginated accounts without password hashes. |
+| `POST` | `/api/dashboard/create-user` | Admin only; creates a regular dashboard user. |
+| `POST` | `/api/dashboard/create-admin` | Admin only; creates another administrator. |
+| `PUT` | `/api/dashboard/change-role?user_id=<uuid>&role=user` or `role=admin` | Admin only; changes a user’s role. |
+| `GET` | `/api/dashboard/delete-user` | Authenticated user deletes their own account. An admin may pass `user_id=<uuid>` to delete another account; regular users cannot use that parameter to target someone else. |
+
+Protected requests use `Authorization: Bearer <access_token>`. Login and account-management behavior is also described in the interactive OpenAPI documentation.
 
 ## Checks
 

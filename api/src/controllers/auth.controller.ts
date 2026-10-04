@@ -5,6 +5,7 @@ import { logger, logError, logZodError, slowLog, logInfo } from "../lib/loggers/
 import { ControllerErrorHelper } from "../lib/controller.helper";
 import { performance } from "node:perf_hooks";
 import { ValidationError } from "../lib/errors/errors";
+import { UUID } from "node:crypto";
 
 const log = logger.child({
     component: "auth_controller"
@@ -156,17 +157,17 @@ export class AuthController{
     ): Promise<Response> => {
         const start = performance.now();
         try{
-            if(!req.body.user_id || !req.body.refresh_token){
-                logError(log, new ValidationError("user_id and refresh token are required"), "sign_out", req);
-                return ControllerErrorHelper.handle(new ValidationError("user_id and refresh token are required"), req, res, log, {
+            if(!req.body.refresh_token){
+                logError(log, new ValidationError("refresh token is required"), "sign_out", req);
+                return ControllerErrorHelper.handle(new ValidationError("refresh token is required"), req, res, log, {
                     body: req.body,
                     method: req.method,
                     path: req.originalUrl,
                 });
             }
-            const {user_id, refresh_token} = req.body;
+            const refresh_token = req.body;
 
-            const data = await this.authService.sign_out(user_id, refresh_token);
+            const data = await this.authService.sign_out(refresh_token);
             data.url = req.originalUrl;
             data.time_taken_ms = performance.now() - start;
             if(data.time_taken_ms > 1000){
@@ -185,6 +186,55 @@ export class AuthController{
             });
         }
     };
+
+    change_role = async(
+        req: Request,
+        res: Response
+    ): Promise<Response> => {
+        const start = performance.now();
+
+        try{
+            if(!req.query.user_id || !req.query.role){
+                logError(log, new ValidationError("user_id and role are required"), "change_role", req);
+                return ControllerErrorHelper.handle(new ValidationError("user_id and role are required"), req, res, log, {
+                    body: req.body,
+                    method: req.method,
+                    path: req.originalUrl,
+                });
+            }
+
+            const { user_id, role } = req.query;
+
+            const normalizedRole = role === "user" || role === "admin" ? role : undefined;
+            if (!normalizedRole) {
+                logError(log, new ValidationError("role must be either 'user' or 'admin'"), "change_role", req);
+                return ControllerErrorHelper.handle(new ValidationError("role must be either 'user' or 'admin'"), req, res, log, {
+                    body: req.body,
+                    method: req.method,
+                    path: req.originalUrl,
+                });
+            }
+
+            const data = await this.authService.change_role(user_id as UUID, normalizedRole);
+            data.url = req.originalUrl;
+            data.time_taken_ms = performance.now() - start;
+            if(data.time_taken_ms > 1000){
+                slowLog(log, data, "change_role", req, res);
+            }
+            else{
+                logInfo(log, data, "change_role", req);
+            }
+            return res.status(data.status_code ?? 200).json(data);
+
+        }catch (err){
+            logError(log, err, "change_role", req);
+            return ControllerErrorHelper.handle(err, req, res, log, {
+                body: req.body,
+                method: req.method,
+                path: req.originalUrl,
+            });
+        }
+    }
 
     sign_in_with_refresh_token = async(
         req: Request,

@@ -5,6 +5,9 @@ import { logger, logError, logZodError, slowLog, logInfo } from "../lib/loggers/
 import { ControllerErrorHelper } from "../lib/controller.helper";
 import { performance } from "node:perf_hooks";
 import { ValidationError } from "../lib/errors/errors";
+import { Http_Response } from "../lib/responses.ts";
+import { Payload } from "../lib/auth.helper.ts";
+import { UUID } from "node:crypto";
 
 const log = logger.child({
     component: "dashboard_controller"
@@ -190,6 +193,47 @@ export class DashboardController{
             return res.status(200).json(data);
         } catch (err){
             logError(log, err, "get_custom_month_range_data", req);
+            return ControllerErrorHelper.handle(err, req, res, log, {
+                body: req.body,
+                method: req.method,
+                path: req.originalUrl,
+            });
+        }
+    }
+
+    // Delete function
+    // normal user could only detlet themselves that's why if the role is user it will take the user_id inside the given token payload
+    // however if the admin is deleting, they can delete a user or their own account. On the case that they give no user_id for a certain user,
+    // their own account gets deleted
+    delete = async(
+        req: Request,
+        res: Response
+    ): Promise<Response> => {
+        const start  = performance.now();
+
+        try{
+            let data: Http_Response<null>;
+    
+            const user = req.user as Payload;
+    
+            if(user.role === "user"){
+                data = await this.dashboardService.delete(user.sub as UUID);
+            }
+            else{ // user.role == admin
+                data = await this.dashboardService.delete(req.query.user_id ? req.query.user_id as UUID : user.sub as UUID)
+            }
+    
+            data.url = req.originalUrl;
+            data.time_taken_ms = performance.now() - start;
+            if(data.time_taken_ms > 1000){
+                slowLog(log, data, "delete", req, res);
+            }
+            else{
+                logInfo(log, data, "delete", req);
+            }
+            return res.status(200).json(data);
+        }catch (err){
+            logError(log, err, "delete", req);
             return ControllerErrorHelper.handle(err, req, res, log, {
                 body: req.body,
                 method: req.method,

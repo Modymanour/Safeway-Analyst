@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, ChevronLeft, ChevronRight, Loader2, Plus, ShieldCheck, UserRound, Users as UsersIcon } from "lucide-react";
-import { createDashboardUser, getDashboardUsers } from "@/lib/auth";
+import { useNavigate } from "react-router-dom";
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2, Plus, ShieldCheck, Trash2, UserRound, Users as UsersIcon } from "lucide-react";
+import { changeDashboardUserRole, createDashboardUser, deleteDashboardUser, getDashboardUsers } from "@/lib/auth";
 import { useAuth } from "@/lib/AuthContext";
 
 const PAGE_SIZE = 10;
 const emptyForm = { username: "", email: "", password: "", role: "user" };
 
 export default function UsersPage() {
-  const { user } = useAuth();
+  const { user, clearCurrentSession, updateCurrentUser } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === "admin";
   const [page, setPage] = useState(1);
   const [result, setResult] = useState({ data: [], total: 0, totalPages: 0 });
@@ -17,6 +19,7 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [pendingAccountId, setPendingAccountId] = useState(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -53,6 +56,50 @@ export default function UsersPage() {
 
   const users = result?.data || [];
   const totalPages = Math.max(1, Number(result?.totalPages) || 1);
+  const deleteOwnAccount = () => removeAccount({ id: user?.id, username: user?.username || "your" });
+
+  const changeRole = async (account, role) => {
+    if (account.role === role) return;
+    setError("");
+    setNotice("");
+    setPendingAccountId(account.id);
+    try {
+      const updatedUser = await changeDashboardUserRole(account.id, role, account.id === user?.id);
+      if (updatedUser) updateCurrentUser(updatedUser);
+      setNotice(`${account.username}'s role was changed to ${role}.`);
+      setReloadKey((key) => key + 1);
+    } catch (cause) {
+      setError(cause.message || "Could not change the account role.");
+    } finally {
+      setPendingAccountId(null);
+    }
+  };
+
+  const removeAccount = async (account) => {
+    const isSelf = account.id === user?.id;
+    const confirmation = isSelf
+      ? "Delete your account? You will be signed out and this cannot be undone."
+      : `Delete ${account.username}'s account? This cannot be undone.`;
+    if (!window.confirm(confirmation)) return;
+
+    setError("");
+    setNotice("");
+    setPendingAccountId(account.id);
+    try {
+      await deleteDashboardUser(isAdmin && !isSelf ? account.id : undefined);
+      if (isSelf) {
+        clearCurrentSession();
+        navigate("/login", { replace: true });
+        return;
+      }
+      setNotice(`${account.username}'s account was deleted.`);
+      setReloadKey((key) => key + 1);
+    } catch (cause) {
+      setError(cause.message || "Could not delete the account.");
+    } finally {
+      setPendingAccountId(null);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-[1200px] p-6 md:p-8">
@@ -79,17 +126,26 @@ export default function UsersPage() {
         </form>
       </section>}
 
+      <section className="mb-7 flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
+        <div><h2 className="font-display text-lg">Your account</h2><p className="text-sm text-muted-foreground">Signed in as {user?.username || user?.email}.</p></div>
+        <button type="button" onClick={deleteOwnAccount} disabled={pendingAccountId === user?.id} className="inline-flex w-fit items-center gap-2 rounded-xl border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50">{pendingAccountId === user?.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete my account</button>
+      </section>
+
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-5 py-4 md:px-6">
           <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-primary"><UsersIcon className="h-4 w-4" /></div><div><h2 className="font-display text-lg">Accounts</h2><p className="text-xs text-muted-foreground">{Number(result?.total) || 0} total</p></div></div>
           {loading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] text-left text-sm">
-            <thead className="bg-secondary/40 text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="px-5 py-3 font-medium md:px-6">User</th><th className="px-5 py-3 font-medium">Email</th><th className="px-5 py-3 font-medium">Role</th><th className="px-5 py-3 font-medium">Created</th></tr></thead>
+          <table className="w-full min-w-[700px] text-left text-sm">
+            <thead className="bg-secondary/40 text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="px-5 py-3 font-medium md:px-6">User</th><th className="px-5 py-3 font-medium">Email</th><th className="px-5 py-3 font-medium">Role</th><th className="px-5 py-3 font-medium">Created</th><th className="px-5 py-3 font-medium">Actions</th></tr></thead>
             <tbody className="divide-y divide-border">
-              {!loading && users.map((account) => <tr key={account.id} className="hover:bg-secondary/20"><td className="px-5 py-4 md:px-6"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary"><UserRound className="h-4 w-4" /></span><span className="font-medium">{account.username}</span>{account.id === user?.id && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">You</span>}</div></td><td className="px-5 py-4 text-muted-foreground">{account.email}</td><td className="px-5 py-4"><span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs capitalize"><ShieldCheck className={`h-3.5 w-3.5 ${account.role === "admin" ? "text-primary" : "text-muted-foreground"}`} />{account.role}</span></td><td className="px-5 py-4 text-muted-foreground">{account.created_at ? new Date(account.created_at).toLocaleDateString() : "—"}</td></tr>)}
-              {!loading && users.length === 0 && <tr><td colSpan="4" className="px-6 py-12 text-center text-sm text-muted-foreground">No user accounts found.</td></tr>}
+              {!loading && users.map((account) => {
+                const isSelf = account.id === user?.id;
+                const canDelete = isAdmin && !isSelf;
+                return <tr key={account.id} className="hover:bg-secondary/20"><td className="px-5 py-4 md:px-6"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary"><UserRound className="h-4 w-4" /></span><span className="font-medium">{account.username}</span>{isSelf && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">You</span>}</div></td><td className="px-5 py-4 text-muted-foreground">{account.email}</td><td className="px-5 py-4"><span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs capitalize"><ShieldCheck className={`h-3.5 w-3.5 ${account.role === "admin" ? "text-primary" : "text-muted-foreground"}`} />{account.role}</span>{isAdmin && <select aria-label={`Change ${account.username}'s role`} value={account.role} disabled={pendingAccountId === account.id} onChange={(event) => changeRole(account, event.target.value)} className="ml-2 rounded-lg border border-border bg-background px-2 py-1 text-xs capitalize disabled:opacity-50"><option value="user">User</option><option value="admin">Admin</option></select>}</td><td className="px-5 py-4 text-muted-foreground">{account.created_at ? new Date(account.created_at).toLocaleDateString() : "—"}</td><td className="px-5 py-4">{canDelete && <button type="button" onClick={() => removeAccount(account)} disabled={pendingAccountId === account.id} aria-label={`Delete ${isSelf ? "your" : account.username + "'s"} account`} className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-2.5 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50">{pendingAccountId === account.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}{isSelf ? "Delete my account" : "Delete"}</button>}</td></tr>;
+              })}
+              {!loading && users.length === 0 && <tr><td colSpan="5" className="px-6 py-12 text-center text-sm text-muted-foreground">No user accounts found.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -98,7 +154,7 @@ export default function UsersPage() {
           <div className="flex gap-2"><button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1 || loading} aria-label="Previous page" className="rounded-lg border border-border p-2 hover:bg-secondary disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button><button type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page >= totalPages || loading} aria-label="Next page" className="rounded-lg border border-border p-2 hover:bg-secondary disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button></div>
         </div>
       </section>
-      {!isAdmin && <p className="mt-4 text-xs text-muted-foreground">Only administrators can create dashboard accounts.</p>}
+      {!isAdmin && <p className="mt-4 text-xs text-muted-foreground">You can delete your own account; only administrators can create accounts, change roles, or delete other users.</p>}
     </div>
   );
 }

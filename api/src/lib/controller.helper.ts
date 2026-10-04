@@ -12,14 +12,14 @@ export class ControllerErrorHelper {
     ): Response {
         const error = err instanceof Error ? err : new Error(String(err));
 
-        log.error(JSON.stringify({
+        log.error({
             error: {
                 name: error.name,
                 message: error.message,
                 stack: error.stack,
             },
-            state: state
-        }, null, 2));
+            state,
+        });
 
         if (error.name === "NotFoundError") {
             return res.status(404).json({ error: "Not Found error", msg: error.message });

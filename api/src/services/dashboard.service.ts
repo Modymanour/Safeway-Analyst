@@ -6,6 +6,7 @@ import { UserRepository, UserRow } from '../repositories/user.repository.ts';
 import { logger } from '../lib/loggers/logger.ts';
 import { PaginatedResult } from '../repositories/types.ts';
 import { getCurrentMonthRange, getCurrentYearRange, dateRange, getCustomMonthRange } from '../lib/date.helper.ts';
+import { UUID } from 'crypto';
 
 const log = logger.child({
     component: "dashboard_service"
@@ -353,6 +354,33 @@ export class DashboardService{
         })
         return response;
     }
+    // Delete User:
+    // if a user is accessing this function, they are 100 % deleting their own account
+    // admin gets to delete their acc or another person's account
+    async delete(
+        user_id: UUID,
+    ): Promise<Http_Response<null>>{
+        const result = await this.userRepo.delete(this.db, user_id);
+
+        const response: Http_Response<null> = {
+            status: "Successful",
+            status_code: 200,
+            data: null,
+            request_id: null,
+            msg: "User deleted",
+            url: null,
+            time_taken_ms: null,
+        }
+
+        log.debug({
+            action: "delete",
+            msg: "Successful deletion",
+            user_id: user_id,
+            status: "Successful"
+        });
+        return response;
+    }
+
     // Search Users:
     // Get users based on filters
     // Filters are: { username, email, role}

@@ -145,3 +145,18 @@ export function createDashboardUser(user, role) {
   const endpoint = role === "admin" ? "create-admin" : "create-user";
   return apiRequest(`/dashboard/${endpoint}`, { method: "POST", body: user });
 }
+
+export async function changeDashboardUserRole(userId, role, updateSession = false) {
+  const params = new URLSearchParams({ user_id: userId, role });
+  const tokens = await apiRequest(`/dashboard/change-role?${params}`, { method: "PUT" });
+  if (updateSession) {
+    setTokens(tokens);
+    return getCurrentUser();
+  }
+  return null;
+}
+
+export function deleteDashboardUser(userId) {
+  const params = userId ? `?${new URLSearchParams({ user_id: userId })}` : "";
+  return apiRequest(`/dashboard/delete-user${params}`);
+}
