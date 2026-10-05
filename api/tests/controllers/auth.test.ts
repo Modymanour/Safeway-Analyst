@@ -3,11 +3,14 @@ import { AuthController } from "../../src/controllers/auth.controller.ts";
 
 const createAuthService = () => ({
     create_dashboard_user: vi.fn(),
-    sign_up: vi.fn(),
     sign_in: vi.fn(),
     sign_out: vi.fn(),
     change_role: vi.fn(),
     sign_in_with_refresh_token: vi.fn(),
+    create_verification_token: vi.fn(),
+    confirm_verification_token: vi.fn(),
+    create_password_token: vi.fn(),
+    confirm_password_token: vi.fn(),
 });
 
 const mockHttpResult = (status_code: number, msg: string) => ({
@@ -89,17 +92,6 @@ describe("Auth Controller", () => {
             expect(service.create_dashboard_user).not.toHaveBeenCalled();
             assertError(res, 400, "Schema error");
         });
-    });
-
-    test("registers a user", async () => {
-        service.sign_up.mockResolvedValue(mockHttpResult(201, "Created"));
-        const req = mockRequest({ body: validRegistration, originalUrl: "/api/dashboard/sign-up" });
-        const res = mockResponse();
-
-        await controller.sign_up(req, res);
-
-        expect(service.sign_up).toHaveBeenCalledWith(validRegistration);
-        assertSuccess(res, 201);
     });
 
     describe("Signing in", () => {
@@ -203,6 +195,96 @@ describe("Auth Controller", () => {
 
             expect(service.sign_in_with_refresh_token).not.toHaveBeenCalled();
             assertError(res, 400, "Validation error");
+        });
+    });
+
+    describe("Account verification endpoints", () => {
+        test("requests a verification code", async () => {
+            service.create_verification_token.mockResolvedValue(mockHttpResult(201, "Code sent"));
+            const req = mockRequest({
+                originalUrl: "/api/dashboard/verification-token",
+                body: { email: validRegistration.email },
+            });
+            const res = mockResponse();
+
+            await controller.create_verification_token(req, res);
+
+            expect(service.create_verification_token).toHaveBeenCalledWith(validRegistration.email);
+            assertSuccess(res, 201);
+        });
+
+        test("confirms a six-digit verification code", async () => {
+            service.confirm_verification_token.mockResolvedValue(mockHttpResult(200, "Verified"));
+            const req = mockRequest({
+                originalUrl: "/api/dashboard/verification-token/confirm",
+                body: { email: validRegistration.email, otp: "123456" },
+            });
+            const res = mockResponse();
+
+            await controller.confirm_verification_token(req, res);
+
+            expect(service.confirm_verification_token).toHaveBeenCalledWith(validRegistration.email, "123456");
+            assertSuccess(res, 200);
+        });
+
+        test("rejects a malformed verification code", async () => {
+            const req = mockRequest({ body: { email: validRegistration.email, otp: "123" } });
+            const res = mockResponse();
+
+            await controller.confirm_verification_token(req, res);
+
+            expect(service.confirm_verification_token).not.toHaveBeenCalled();
+            assertError(res, 400, "Schema error");
+        });
+    });
+
+    describe("Password reset endpoints", () => {
+        test("requests a password reset code", async () => {
+            service.create_password_token.mockResolvedValue(mockHttpResult(200, "Code sent"));
+            const req = mockRequest({
+                originalUrl: "/api/dashboard/password-reset-token",
+                body: { email: validRegistration.email },
+            });
+            const res = mockResponse();
+
+            await controller.create_password_token(req, res);
+
+            expect(service.create_password_token).toHaveBeenCalledWith(validRegistration.email);
+            assertSuccess(res, 200);
+        });
+
+        test("confirms a password reset code and new password", async () => {
+            service.confirm_password_token.mockResolvedValue(mockHttpResult(200, "Password reset"));
+            const req = mockRequest({
+                originalUrl: "/api/dashboard/password-reset-token/confirm",
+                body: {
+                    email: validRegistration.email,
+                    otp: "123456",
+                    new_password: "NewStrong_password2026",
+                },
+            });
+            const res = mockResponse();
+
+            await controller.confirm_password_token(req, res);
+
+            expect(service.confirm_password_token).toHaveBeenCalledWith(
+                validRegistration.email,
+                "123456",
+                "NewStrong_password2026"
+            );
+            assertSuccess(res, 200);
+        });
+
+        test("rejects a weak password reset payload", async () => {
+            const req = mockRequest({
+                body: { email: validRegistration.email, otp: "123456", new_password: "short" },
+            });
+            const res = mockResponse();
+
+            await controller.confirm_password_token(req, res);
+
+            expect(service.confirm_password_token).not.toHaveBeenCalled();
+            assertError(res, 400, "Schema error");
         });
     });
 });

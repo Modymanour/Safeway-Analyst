@@ -32,8 +32,8 @@ export const seed_admin = async () => {
 
     await queryOne(
         db,
-        `INSERT INTO users (id, username, email, password, role, created_at, updated_at)
-         VALUES (gen_random_uuid(), $1, $2, $3, 'admin', now(), now())`
+        `INSERT INTO users (id, username, email, password, role, verified, created_at, updated_at)
+         VALUES (gen_random_uuid(), $1, $2, $3, 'admin', true, now(), now())`
         ,
          [
             email.split("@")[0],

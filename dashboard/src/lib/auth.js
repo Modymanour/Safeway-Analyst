@@ -110,6 +110,42 @@ export async function signIn(email, password) {
   return getCurrentUser();
 }
 
+export function requestVerificationCode(email) {
+  return apiRequest("/dashboard/verification-token", {
+    method: "POST",
+    body: { email },
+    skipAuth: true,
+    skipRefresh: true,
+  });
+}
+
+export function confirmVerificationCode(email, otp) {
+  return apiRequest("/dashboard/verification-token/confirm", {
+    method: "POST",
+    body: { email, otp },
+    skipAuth: true,
+    skipRefresh: true,
+  });
+}
+
+export function requestPasswordResetCode(email) {
+  return apiRequest("/dashboard/password-reset-token", {
+    method: "POST",
+    body: { email },
+    skipAuth: true,
+    skipRefresh: true,
+  });
+}
+
+export function confirmPasswordReset(email, otp, newPassword) {
+  return apiRequest("/dashboard/password-reset-token/confirm", {
+    method: "POST",
+    body: { email, otp, new_password: newPassword },
+    skipAuth: true,
+    skipRefresh: true,
+  });
+}
+
 export async function signOut(userId) {
   const refreshToken = getRefreshToken();
   try {

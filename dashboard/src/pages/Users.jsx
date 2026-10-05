@@ -43,7 +43,7 @@ export default function UsersPage() {
     setSaving(true);
     try {
       await createDashboardUser({ username: form.username.trim(), email: form.email.trim(), password: form.password }, form.role);
-      setNotice(`${form.role === "admin" ? "Administrator" : "User"} account created successfully.`);
+      setNotice(`${form.role === "admin" ? "Administrator" : "User"} account created. A verification code has been sent to ${form.email.trim()}. The new user must verify their email before signing in. If the code expires, they can request another from the sign-in page.`);
       setForm(emptyForm);
       setPage(1);
       setReloadKey((key) => key + 1);
@@ -115,7 +115,7 @@ export default function UsersPage() {
       {isAdmin && <section className="mb-7 rounded-2xl border border-border bg-card p-5 md:p-7">
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Plus className="h-5 w-5" /></div>
-          <div><h2 className="font-display text-xl">Create an account</h2><p className="text-sm text-muted-foreground">Add a dashboard user or another administrator.</p></div>
+          <div><h2 className="font-display text-xl">Create an account</h2><p className="text-sm text-muted-foreground">Add a dashboard user or administrator. They must verify their email before signing in.</p></div>
         </div>
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm font-medium">Username<input required maxLength={100} value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} className="mt-1 block w-full rounded-xl border border-border bg-background px-3 py-2.5" placeholder="Alex Morgan" /></label>

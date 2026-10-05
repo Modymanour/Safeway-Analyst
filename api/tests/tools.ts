@@ -16,6 +16,7 @@ export const createUser = async (db: Queryable,repository:UserRepository, counte
             role: "admin",
         };
         data.push(await repository.create(db, input));
+        await repository.verify_user(db, data[i].id);
     }
     return data;
 }

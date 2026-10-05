@@ -4,10 +4,10 @@ import { PaginatedResult } from"./types.ts";
 import { logger } from "../lib/loggers/logger.ts";
 
 const log = logger.child({
-    component: "password_token_repository"
+    component: "verification_token_repository"
 })
 
-export interface PasswordTokenRow{
+export interface VerificationTokenRow{
     id: UUID,
     user_id: UUID,
     token: string,
@@ -16,10 +16,10 @@ export interface PasswordTokenRow{
     updated_at: Date
 };
 
-const PASSWORD_TOKEN_COLUMNS=`
+const VERIFICATION_TOKEN_COLUMNS=`
     id, user_id, token, expires_at, created_at, updated_at`;
 
-export class PasswordTokenRepository{
+export class VerificationTokenRepository{
     constructor () {}
     async create(
         db: Queryable,
@@ -28,12 +28,12 @@ export class PasswordTokenRepository{
             token: string,
             expires_at: Date,
         }
-    ): Promise<PasswordTokenRow>{
-        const result = await queryOne<PasswordTokenRow>(
+    ): Promise<VerificationTokenRow>{
+        const result = await queryOne<VerificationTokenRow>(
             db,
-            `INSERT INTO password_reset_tokens (${PASSWORD_TOKEN_COLUMNS})
+            `INSERT INTO verification_tokens (${VERIFICATION_TOKEN_COLUMNS})
              VALUES (gen_random_uuid(), $1, $2, $3, now(), now())
-             RETURNING ${PASSWORD_TOKEN_COLUMNS}`,
+             RETURNING ${VERIFICATION_TOKEN_COLUMNS}`,
              [
                 input.user_id,
                 input.token,
@@ -54,14 +54,14 @@ export class PasswordTokenRepository{
             token: string,
             expires_at: Date
         }
-    ): Promise<PasswordTokenRow | null>{
-        const result = await queryOne<PasswordTokenRow>(
+    ): Promise<VerificationTokenRow | null>{
+        const result = await queryOne<VerificationTokenRow>(
             db,
-            `UPDATE password_reset_tokens SET
+            `UPDATE verification_tokens SET
              token          = COALESCE($1, token),
              expires_at     = COALESCE($2, expires_at)
              WHERE id = $3
-             RETURNING ${PASSWORD_TOKEN_COLUMNS}`,
+             RETURNING ${VERIFICATION_TOKEN_COLUMNS}`,
              [
                 input.token ?? null,
                 input.expires_at ?? null,
@@ -81,7 +81,7 @@ export class PasswordTokenRepository{
     ): Promise<void> {
         await query(
             db,
-            `DELETE FROM password_reset_tokens WHERE id = $1`,
+            `DELETE FROM verification_tokens WHERE id = $1`,
             [id]
         );
         log.debug({
@@ -91,15 +91,15 @@ export class PasswordTokenRepository{
         });
     }
     async deleteByUserId(db: Queryable, user_id: UUID): Promise<void> {
-        await query(db, `DELETE FROM password_reset_tokens WHERE user_id = $1`, [user_id]);
+        await query(db, `DELETE FROM verification_tokens WHERE user_id = $1`, [user_id]);
     }
     async getById(
         db: Queryable,
         id: UUID
-    ): Promise<PasswordTokenRow | null> {
-        const result = await queryOne<PasswordTokenRow>(
+    ): Promise<VerificationTokenRow | null> {
+        const result = await queryOne<VerificationTokenRow>(
             db,
-            `SELECT ${PASSWORD_TOKEN_COLUMNS} FROM password_reset_tokens WHERE id = $1`,
+            `SELECT ${VERIFICATION_TOKEN_COLUMNS} FROM verification_tokens WHERE id = $1`,
             [id]
         );
         log.debug({
@@ -112,10 +112,10 @@ export class PasswordTokenRepository{
     async getByToken(
         db: Queryable,
         token: string
-    ): Promise<PasswordTokenRow | null> {
-        const result = await queryOne<PasswordTokenRow>(
+    ): Promise<VerificationTokenRow | null> {
+        const result = await queryOne<VerificationTokenRow>(
             db,
-            `SELECT ${PASSWORD_TOKEN_COLUMNS} FROM password_reset_tokens WHERE token = $1`,
+            `SELECT ${VERIFICATION_TOKEN_COLUMNS} FROM verification_tokens WHERE token = $1`,
             [token]
         );
         log.debug({
@@ -130,10 +130,10 @@ export class PasswordTokenRepository{
         db: Queryable,
         user_id: UUID,
         token: string
-    ): Promise<PasswordTokenRow | null> {
-        const result = await queryOne<PasswordTokenRow>(
+    ): Promise<VerificationTokenRow | null> {
+        const result = await queryOne<VerificationTokenRow>(
             db,
-            `SELECT ${PASSWORD_TOKEN_COLUMNS} FROM password_reset_tokens WHERE user_id = $1 AND token = $2`,
+            `SELECT ${VERIFICATION_TOKEN_COLUMNS} FROM verification_tokens WHERE user_id = $1 AND token = $2`,
             [user_id, token]
         );
         return result ?? null;
@@ -142,10 +142,10 @@ export class PasswordTokenRepository{
     async getByUserId(
         db: Queryable,
         user_id: UUID
-    ): Promise<PasswordTokenRow | null> {
-        const result = await queryOne<PasswordTokenRow>(
+    ): Promise<VerificationTokenRow | null> {
+        const result = await queryOne<VerificationTokenRow>(
             db,
-            `SELECT ${PASSWORD_TOKEN_COLUMNS} FROM password_reset_tokens WHERE user_id = $1`,
+            `SELECT ${VERIFICATION_TOKEN_COLUMNS} FROM verification_tokens WHERE user_id = $1`,
             [user_id]
         );
         log.debug({
@@ -160,19 +160,19 @@ export class PasswordTokenRepository{
         db: Queryable,
         page: number,
         pageSize: number
-    ): Promise<PaginatedResult<PasswordTokenRow>>{
+    ): Promise<PaginatedResult<VerificationTokenRow>>{
         const offset = (page - 1) * pageSize;
         const limitClause = pageSize > 0 ? `LIMIT ${pageSize}` : '';
         const offsetClause = page > 0 ? `OFFSET ${offset}` : '';
 
         const totalRow = await queryOne<{ total: number }>(
             db,
-            `SELECT COUNT(*) AS total FROM password_reset_tokens`
+            `SELECT COUNT(*) AS total FROM verification_tokens`
         );
 
-        const rows = await queryRows<PasswordTokenRow>(
+        const rows = await queryRows<VerificationTokenRow>(
             db,
-            `SELECT ${PASSWORD_TOKEN_COLUMNS} FROM password_reset_tokens ORDER BY created_at DESC ${limitClause} ${offsetClause}`,
+            `SELECT ${VERIFICATION_TOKEN_COLUMNS} FROM verification_tokens ORDER BY created_at DESC ${limitClause} ${offsetClause}`,
             []
         );
 
@@ -188,7 +188,7 @@ export class PasswordTokenRepository{
         }
 
         log.debug({
-            action: "get all password tokens",
+            action: "get all verification tokens",
             page: page,
             pageSize: pageSize,
             data_count: result.total,

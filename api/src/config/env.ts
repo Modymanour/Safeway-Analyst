@@ -30,7 +30,11 @@ const envSchema = z.object({
 
     ADMIN_EMAIL: z.email().trim().toLowerCase(),
 
-    ADMIN_PASSWORD: z.string()
+    ADMIN_PASSWORD: z.string(),
+
+    EMAIL: z.email(),
+
+    EMAIL_PASSWORD: z.string().min(8)
 });
 
 dotenv.config({

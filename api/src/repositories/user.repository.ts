@@ -78,7 +78,7 @@ export class UserRepository {
 
         const result = await queryOne<UserRow>(
             db,
-            `UPDATE users SET ${setClauses.join(", ")}, updated_at = now() WHERE id = $${index} RETURNING ${USER_COLUMNS}`,
+            `UPDATE users SET ${setClauses.join(", ")}, updated_at = now() WHERE id = $${index} AND verified = true RETURNING ${USER_COLUMNS}`,
             [...values, id]
         );
         log.debug({
@@ -95,7 +95,7 @@ export class UserRepository {
     ): Promise<void>{
         await query(
             db,
-            `DELETE FROM users WHERE id = $1`,
+            `DELETE FROM users WHERE id = $1 AND verified = true`,
             [id]
         );
         log.debug({
@@ -104,13 +104,46 @@ export class UserRepository {
             msg: "success"
         });
     }
+    async verify_user(
+        db: Queryable,
+        user_id: UUID
+    ): Promise<UserRow | null>{
+        const result = await queryOne<UserRow>(
+            db,
+            `UPDATE users SET verified = true, updated_at = now() WHERE id = $1 RETURNING ${USER_COLUMNS}`,
+            [user_id]
+        );
+        log.debug({
+            action: "verify_user",
+            id: user_id,
+            msg: result ? "successful": "not found"
+        });
+        return result ?? null;
+    }
+
     async getById(
         db: Queryable,
         id: UUID
     ): Promise<UserRow | null>{
         const result = await queryOne<UserRow>(
             db,
-            `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`,
+            `SELECT ${USER_COLUMNS} FROM users WHERE id = $1 AND verified = true`,
+            [id]
+        );
+        log.debug({
+            action: "get by id",
+            id: id,
+            msg: result ? "successful": "not found"
+        });
+        return result ?? null;
+    }
+    async getByIdNonVerified(
+        db: Queryable,
+        id: UUID
+    ): Promise<UserRow | null>{
+        const result = await queryOne<UserRow>(
+            db,
+            `SELECT ${USER_COLUMNS} FROM users WHERE id = $1 AND verified = false`,
             [id]
         );
         log.debug({
@@ -150,7 +183,7 @@ export class UserRepository {
             index++;
         }
 
-        const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+        const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")} AND verified = true` : "WHERE verified = true";
         const offset = (page - 1) * pageSize;
         const limitClause = pageSize > 0 ? `LIMIT ${pageSize}` : '';
         const offsetClause = page > 0 ? `OFFSET ${offset}` : '';
@@ -197,7 +230,34 @@ export class UserRepository {
     ): Promise<UserRow | null>{
         const result = await queryOne<UserRow>(
             db,
+            `SELECT ${USER_COLUMNS} FROM users WHERE email = $1 AND verified = true`,
+            [email]
+        );
+        log.debug({
+            action: "get by email",
+            email: email,
+            msg: result ? "successful": "not found"
+        });
+        return result ?? null;
+    }
+    async getByEmailAnyVerificationState(
+        db: Queryable,
+        email: string
+    ): Promise<UserRow | null> {
+        const result = await queryOne<UserRow>(
+            db,
             `SELECT ${USER_COLUMNS} FROM users WHERE email = $1`,
+            [email]
+        );
+        return result ?? null;
+    }
+    async getByEmailNonVerified(
+        db: Queryable,
+        email: string
+    ): Promise<UserRow | null>{
+        const result = await queryOne<UserRow>(
+            db,
+            `SELECT ${USER_COLUMNS} FROM users WHERE email = $1 AND verified = false`,
             [email]
         );
         log.debug({

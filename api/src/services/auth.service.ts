@@ -2,12 +2,14 @@ import { pool, Queryable } from "../db/pool.ts";
 import { UserRepository, UserRow } from "../repositories/user.repository.ts";
 import { RefreshTokenRepository } from "../repositories/refresh_token.repository.ts"
 import { PasswordTokenRepository } from "../repositories/password_token.repository.ts"
+import { VerificationTokenRepository } from "../repositories/verification_token.repository.ts"
 import { hash_password, verify_password } from "../lib/hash.ts";
 import { NotFoundError, ValidationError } from '../lib/errors/errors.ts';
 import { logger } from "../lib/loggers/logger.ts";
 import { Http_Response } from "../lib/responses.ts";
 import { generateAccessToken, generateRefreshToken, Payload } from "../lib/auth.helper.ts";
-import { UUID } from "node:crypto";
+import { send_password_reset_email, send_verification_email } from "../lib/email.helper.ts";
+import { randomInt, UUID } from "node:crypto";
 
 const log = logger.child({
     component: "AuthService",
@@ -25,6 +27,7 @@ export class AuthService {
         private readonly userRepo: UserRepository = new UserRepository(),
         private readonly refreshTokenRepo: RefreshTokenRepository = new RefreshTokenRepository(),
         private readonly passwordTokenRepo: PasswordTokenRepository = new PasswordTokenRepository(),
+        private readonly verificationTokenRepo: VerificationTokenRepository = new VerificationTokenRepository(),
         private readonly db: Queryable = pool,
     ) {}
 
@@ -32,7 +35,7 @@ export class AuthService {
         input: { username: string; email: string; password: string },
         role: "admin" | "user"
     ): Promise<Http_Response<DashboardAccount | null>> {
-        const user_exists = await this.userRepo.getByEmail(this.db, input.email);
+        const user_exists = await this.userRepo.getByEmailAnyVerificationState(this.db, input.email.trim().toLowerCase());
         if (user_exists) {
             throw new ValidationError("User already exists");
         }
@@ -46,11 +49,18 @@ export class AuthService {
             password: hash_password(input.password),
             role
         });
-        const { password: _password, ...account } = user;
-        return {
-            status: "Success", msg: "User created successfully", status_code: 201, data: account,
-            request_id: null, url: null, time_taken_ms: null
+        await this.issue_verification_token(user);
+
+        const response: Http_Response<null> = {
+            status: "Success",
+            msg: "Verification code sent to email",
+            status_code: 201,
+            data: null,
+            request_id: null,
+            url: null,
+            time_taken_ms: null
         };
+        return response;
     }
 
     async create_admin(
@@ -60,10 +70,10 @@ export class AuthService {
             password: string
         }
     ): Promise<Http_Response<TokensRow>>{
-        const user_exists = await this.userRepo.getByEmail(this.db, input.email);
+        const user_exists = await this.userRepo.getByEmailAnyVerificationState(this.db, input.email.trim().toLowerCase());
         if(user_exists){
             log.warn({
-                action: "sign_up",
+                action: "create_dashboard_user",
                 msg: "email already in use",
                 email: input.email,
             });
@@ -73,7 +83,7 @@ export class AuthService {
         const password_valid = this.validate_password(input.password);
         if(!password_valid){
             log.warn({
-                action: "sign_up",
+                action: "create_dashboard_user",
                 msg: "Password does not meet requirements",
                 email: input.email,
             });
@@ -90,15 +100,7 @@ export class AuthService {
 
         const now = new Date();
 
-        const payload: Payload = {
-            sub: user.id.toString(),
-            email: user.email,
-            username: user.username,
-            tokenType: "access",
-            role: user.role,
-            iat: Math.floor(now.getTime() / 1000),
-            iss: "safeway-api"
-        };
+        const payload: Payload = this.create_payload(user);
 
         const access_token = generateAccessToken(payload);
         const refresh_token = generateRefreshToken(payload);
@@ -122,89 +124,13 @@ export class AuthService {
             time_taken_ms: null
         };
         log.info({
-            action: "sign_up",
+            action: "create_dashboard_user",
             msg: "User created successfully",
             user_id: user.id,
             email: user.email,
         });
         return response;
     };
-    async sign_up (
-        input: {
-            username: string,
-            email: string,
-            password: string
-        }
-    ): Promise<Http_Response<TokensRow>>{
-        const user_exists = await this.userRepo.getByEmail(this.db, input.email);
-        if(user_exists){
-            log.warn({
-                action: "sign_up",
-                msg: "email already in use",
-                email: input.email,
-            });
-            throw new ValidationError("User already exists");
-        }
-
-        const password_valid = this.validate_password(input.password);
-        if(!password_valid){
-            log.warn({
-                action: "sign_up",
-                msg: "Password does not meet requirements",
-                email: input.email,
-            });
-            throw new ValidationError("Password does not meet minimum requirements");
-        }
-
-        const hashed_password = hash_password(input.password);
-        const user = await this.userRepo.create(this.db, {
-            username: input.username,
-            email: input.email,
-            password: hashed_password,
-            role: "user"
-        });
-
-        const now = new Date();
-
-        const payload: Payload = {
-            sub: user.id.toString(),
-            email: user.email,
-            username: user.username,
-            tokenType: "access",
-            role: user.role,
-            iat: Math.floor(now.getTime() / 1000),
-            iss: "safeway-api"
-        };
-        const access_token = generateAccessToken(payload);
-        const refresh_token = generateRefreshToken(payload);
-
-        await this.refreshTokenRepo.create(this.db,{
-            user_id: user.id,
-            token: refresh_token,
-            expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-        });
-
-        const response: Http_Response<TokensRow> = {
-            status: "Success",
-            msg: "User created successfully",
-            status_code: 201,
-            data: {
-                access_token,
-                refresh_token
-            },
-            request_id: null,
-            url: null,
-            time_taken_ms: null
-        };
-        log.info({
-            action: "sign_up",
-            msg: "User created successfully",
-            user_id: user.id,
-            email: user.email,
-        });
-        return response;
-    };
-
     async sign_in (
         email: string,
         password: string
@@ -212,12 +138,16 @@ export class AuthService {
         email = email.trim().toLowerCase();
         const user = await this.userRepo.getByEmail(this.db, email);
         if(!user){
+            const pendingUser = await this.userRepo.getByEmailNonVerified(this.db, email);
+            if (pendingUser && verify_password(pendingUser.password, password)) {
+                throw new ValidationError("Account is not verified. Please verify your email before signing in.");
+            }
             log.warn({
                 action: "sign_in",
-                msg: "User not found",
+                msg: "User not found or invalid password",
                 email: email,
             });
-            throw new NotFoundError("User not found");
+            throw new NotFoundError("Invalid email or password");
         }
 
         const is_valid_password = verify_password(user.password, password);
@@ -232,15 +162,7 @@ export class AuthService {
 
         const now = new Date();
 
-        const payload: Payload = {
-            sub: user.id.toString(),
-            email: user.email,
-            username: user.username,
-            tokenType: "access",
-            role: user.role,
-            iat: Math.floor(now.getTime() / 1000),
-            iss: "safeway-api"
-        };
+        const payload: Payload = this.create_payload(user);
         const access_token = generateAccessToken(payload);
         const refresh_token = generateRefreshToken(payload);
 
@@ -339,15 +261,7 @@ export class AuthService {
 
         const now = new Date();
         
-        const payload: Payload = {
-            sub: user.id.toString(),
-            email: user.email,
-            username: user.username,
-            tokenType: "access",
-            role: user.role,
-            iat: Math.floor(now.getTime() / 1000),
-            iss: "safeway-api"
-        };
+        const payload: Payload = this.create_payload(user);
         const access_token = generateAccessToken(payload);
         const refresh_token_string = generateRefreshToken(payload);
         await this.refreshTokenRepo.update(this.db, refresh_token_exists.id, {
@@ -396,15 +310,7 @@ export class AuthService {
         });
 
         if(!result) throw new ValidationError("Something happened");
-        const payload: Payload = {
-            sub: result.id.toString(),
-            email: result.email,
-            username: result.username,
-            tokenType: "access",
-            role: result.role,
-            iat: Math.floor(new Date().getTime() / 1000),
-            iss: "safeway-api"
-        };
+        const payload: Payload = this.create_payload(result);
 
         const access_token = generateAccessToken(payload);
         const refresh_token_string = generateRefreshToken(payload);
@@ -427,8 +333,183 @@ export class AuthService {
             time_taken_ms: null
         };
         return response;
+    };
+
+    async create_verification_token(
+        email: string
+    ): Promise<Http_Response<null>> {
+        email = email.trim().toLowerCase();
+        const user = await this.userRepo.getByEmailNonVerified(this.db, email);
+        if(!user){
+            log.debug({
+                action: "create_verification_token",
+                msg: "user for verification could not be found",
+                email: email,
+            });
+            throw new ValidationError("user for verification could not be found");
+        }
+
+        await this.issue_verification_token(user);
+
+        const response: Http_Response<null> = {
+            status: "Success",
+            msg: "Verification code sent to email",
+            status_code: 201,
+            data: null,
+            request_id: null,
+            url: null,
+            time_taken_ms: null
+        };
+        return response;
+    };
+
+    async confirm_verification_token(
+        email: string,
+        otp: string
+    ): Promise<Http_Response<null>> {
+        email = email.trim().toLowerCase();
+        const user = await this.userRepo.getByEmailNonVerified(this.db, email);
+        if (!user) {
+            log.debug({
+                action: "confirm_verification_token",
+                msg: "unverified user was not found",
+                email: email,
+            });
+            throw new ValidationError("Invalid or expired verification code");
+        }
+
+        const token = await this.verificationTokenRepo.getByUserIdAndToken(this.db, user.id, otp.trim());
+        if (!token) {
+            log.debug({
+                action: "confirm_verification_token",
+                msg: "token was not found for user",
+                email: email,
+            });
+            throw new ValidationError("Invalid or expired verification code");
+        }
+
+        if (new Date(token.expires_at).getTime() <= Date.now()) {
+            await this.verificationTokenRepo.delete(this.db, token.id);
+            throw new ValidationError("Invalid or expired verification code");
+        }
+
+        const verifiedUser = await this.userRepo.verify_user(this.db, user.id);
+        if (!verifiedUser) {
+            throw new ValidationError("Could not verify account");
+        }
+        await this.verificationTokenRepo.delete(this.db, token.id);
+        log.info({
+            action: "confirm_verification_token",
+            msg: "user verified successfully",
+            email: email,
+        })
+        const response: Http_Response<null> = {
+            status: "Success",
+            msg: "Account verified successfully",
+            status_code: 200,
+            data: null,
+            request_id: null,
+            url: null,
+            time_taken_ms: null
+        };
+        return response;
     }
 
+    async create_password_token(email: string): Promise<Http_Response<null>> {
+        const normalizedEmail = email.trim().toLowerCase();
+        const user = await this.userRepo.getByEmail(this.db, normalizedEmail);
+
+        // Use the same response whether or not this address has an account.
+        if (user) {
+            await this.passwordTokenRepo.deleteByUserId(this.db, user.id);
+
+            const otp = String(randomInt(100_000, 1_000_000));
+            await this.passwordTokenRepo.create(this.db, {
+                user_id: user.id,
+                token: otp,
+                expires_at: new Date(Date.now() + 15 * 60 * 1000),
+            });
+            await send_password_reset_email(user.email, user.username, otp);
+        }
+
+        return {
+            status: "Success",
+            msg: "If the account exists, a password reset code has been sent",
+            status_code: 200,
+            data: null,
+            request_id: null,
+            url: null,
+            time_taken_ms: null,
+        };
+    }
+
+    async confirm_password_token(
+        email: string,
+        otp: string,
+        newPassword: string
+    ): Promise<Http_Response<null>> {
+        const normalizedEmail = email.trim().toLowerCase();
+        const normalizedOtp = otp.trim();
+        const user = await this.userRepo.getByEmail(this.db, normalizedEmail);
+        if (!user) {
+            throw new ValidationError("Invalid or expired password reset code");
+        }
+
+        const token = await this.passwordTokenRepo.getByUserIdAndToken(this.db, user.id, normalizedOtp);
+        if (!token) {
+            throw new ValidationError("Invalid or expired password reset code");
+        }
+        if (new Date(token.expires_at).getTime() <= Date.now()) {
+            await this.passwordTokenRepo.delete(this.db, token.id);
+            throw new ValidationError("Invalid or expired password reset code");
+        }
+        if (!this.validate_password(newPassword)) {
+            throw new ValidationError("Password does not meet minimum requirements");
+        }
+
+        const updatedUser = await this.userRepo.update(this.db, user.id, {
+            password: hash_password(newPassword),
+        });
+        if (!updatedUser) {
+            throw new ValidationError("Could not update password");
+        }
+        await this.passwordTokenRepo.delete(this.db, token.id);
+
+        return {
+            status: "Success",
+            msg: "Password reset successfully",
+            status_code: 200,
+            data: null,
+            request_id: null,
+            url: null,
+            time_taken_ms: null,
+        };
+    }
+
+    private async issue_verification_token(user: UserRow): Promise<void> {
+        const otp = String(randomInt(100_000, 1_000_000));
+        await this.verificationTokenRepo.deleteByUserId(this.db, user.id);
+
+        await this.verificationTokenRepo.create(this.db, {
+            user_id: user.id,
+            token: otp,
+            expires_at: new Date(Date.now() + 15 * 60 * 1000),
+        });
+        await send_verification_email(user.email, user.username, otp);
+    }
+
+    create_payload(user: UserRow){
+        const payload: Payload = {
+            sub: user.id.toString(),
+            email: user.email,
+            username: user.username,
+            tokenType: "access",
+            role: user.role,
+            iat: Math.floor(new Date().getTime() / 1000),
+            iss: "safeway-api"
+        };
+        return payload;
+    }
     validate_password(password: string) {
         //Have at least one number
         //Have at least one uppercase letter

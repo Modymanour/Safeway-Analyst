@@ -9,6 +9,25 @@ export const registerSchema = z.object({
     password: z.string().min(8).max(256),
 })
 
+export const verificationTokenRequestSchema = z.object({
+    email: z.email().trim().toLowerCase(),
+});
+
+export const verificationTokenConfirmSchema = z.object({
+    email: z.email().trim().toLowerCase(),
+    otp: z.string().regex(/^\d{6}$/, "Verification code must be six digits"),
+});
+
+export const passwordTokenRequestSchema = z.object({
+    email: z.email().trim().toLowerCase(),
+});
+
+export const passwordTokenConfirmSchema = z.object({
+    email: z.email().trim().toLowerCase(),
+    otp: z.string().regex(/^\d{6}$/, "Reset code must be six digits"),
+    new_password: z.string().min(8).max(128),
+});
+
 
 /* -------------------------------------------------------------------------- */
 /* User visits                                                                */
