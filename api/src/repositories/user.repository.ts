@@ -5,7 +5,7 @@ import { logger } from "../lib/loggers/logger.ts";
 
 const log = logger.child({
     component: "user_repository",
-})
+});
 
 export interface UserRow{
     id: UUID,
