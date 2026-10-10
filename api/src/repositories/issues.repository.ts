@@ -64,7 +64,6 @@ export class IssuesRepository{
         input:{
             title?: string | null,
             description?: string | null,
-            created_by?: UUID | null,
             category_id?: UUID | null,
             status?: IssueStatus | null,
             priority?: number | null,

@@ -52,8 +52,6 @@ export class IssuesCommentsRepository{
         db: Queryable,
         id: UUID,
         input: {
-            issue_id?: UUID | null,
-            author_id?: UUID | null,
             body?: string | null,
         }
     ): Promise<IssuesCommentsRow | null>{
@@ -61,7 +59,7 @@ export class IssuesCommentsRepository{
         const values = [];
         let index = 1;
 
-        const allowedFields = new Set(['issue_id', 'author_id', 'body']);
+        const allowedFields = new Set(['body']);
         for (const [key, value] of Object.entries(input)) {
             if (allowedFields.has(key) && value !== undefined && value !== null) {
                 setClauses.push(`${key} = $${index}`);

@@ -213,4 +213,45 @@ export class CategoriesRepository{
         });
         return result;
     }
+    async getAll(
+        db: Queryable,
+        page: number,
+        pageSize: number
+    ): Promise<PaginatedResult<CategoryRow>>{
+        const normalizedPage = page > 0 ? page : 1;
+        const limitClause = pageSize > 0 ? `LIMIT $1` : '';
+        const offsetClause = pageSize > 0 ? `OFFSET $2` : '';
+
+        const totalRow = await queryOne<{ total: number }>(
+            db,
+            `SELECT COUNT(*) AS total FROM categories`
+        );
+
+        const rows = await queryRows<CategoryRow>(
+            db,
+            `SELECT ${CATEGORY_COLUMNS} FROM categories ORDER BY created_at DESC ${limitClause} ${offsetClause}`,
+            pageSize > 0 ? [pageSize, (normalizedPage - 1) * pageSize] : []
+        );
+
+        const total = Number(totalRow?.total ?? 0);
+        const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 1;
+
+        const result = {
+            data: rows,
+            page: normalizedPage,
+            pageSize: pageSize,
+            total: total,
+            totalPages: totalPages
+        }
+
+        log.debug({
+            action: "get all categories",
+            page: page,
+            pageSize: pageSize,
+            data_count: result.total,
+            msg: "success"
+        });
+
+        return result;
+    }
 }
