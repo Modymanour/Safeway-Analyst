@@ -208,10 +208,10 @@ describe("IssueService issue operations", () => {
         repos.issueRepo.delete = vi.fn().mockResolvedValue(undefined);
 
         const result = await repos.service.delete_issue(actorId, "user", issueId);
-        expect(result.status_code).toBe(204);
+        expect(result.status_code).toBe(200);
         repos.userRepo.getById = vi.fn().mockResolvedValue({ ...userRow, id: otherId });
         await expect(repos.service.delete_issue(otherId, "user", issueId)).rejects.toBeInstanceOf(ForbiddenError);
-        await expect(repos.service.delete_issue(otherId, "admin", issueId)).resolves.toMatchObject({ status_code: 204 });
+        await expect(repos.service.delete_issue(otherId, "admin", issueId)).resolves.toMatchObject({ status_code: 200 });
         expect(repos.issueRepo.delete).toHaveBeenCalledTimes(2);
     });
 

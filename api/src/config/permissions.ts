@@ -1,9 +1,9 @@
 export const permissions = {
     admin: {
-        can: ['create', 'read', 'update', 'delete', 'delete_user', "change_permissions"],
+        can: ['create', 'read', 'update', 'delete', 'delete_user', "change_permissions", "set_category", "create_category", "set_issue", "set_issue_comment"],
     },
     user: {
-        can: ['read', 'delete_user'],
+        can: ['read', 'delete_user', "create_category", "set_issue", "set_issue_comment"],
     },
 }
 

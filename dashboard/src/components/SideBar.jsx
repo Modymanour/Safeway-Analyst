@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, ShieldCheck, Users as UsersIcon } from "lucide-react";
+import { Bug, LayoutDashboard, LogOut, ShieldCheck, Users as UsersIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 
 const navItems = [
   { to: "/", label: "Analytics", icon: LayoutDashboard, end: true },
   { to: "/users", label: "Users", icon: UsersIcon, end: false },
+  { to: "/issues", label: "Issues", icon: Bug, end: false },
 ];
 
 export default function Sidebar() {

@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom
 import DashboardLayout from "@/components/DashboardLayout";
 import Dashboard from "@/pages/Dashboard";
 import Users from "@/pages/Users";
+import Issues from "@/pages/Issues";
 import Login from "@/pages/Login";
 import PageNotFound from "@/lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -21,6 +22,7 @@ export default function App() {
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={<Users />} />
+              <Route path="/issues" element={<Issues />} />
             </Route>
           </Route>
           <Route path="/login" element={<Login />} />

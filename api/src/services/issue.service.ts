@@ -354,7 +354,7 @@ export class IssueService{
 
         const response: Http_Response<void> = {
             status: "Successful",
-            status_code: 204,
+            status_code: 200,
             data: null,
             request_id: null,
             msg: "Issue deleted successfully",

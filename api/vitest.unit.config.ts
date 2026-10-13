@@ -6,6 +6,7 @@ export default defineConfig({
             "tests/services/auth.test.ts",
             "tests/controllers/auth.test.ts",
             "tests/services/issue.test.ts",
+            "tests/controllers/issues.test.ts",
         ],
         fileParallelism: false,
         isolate: false,
