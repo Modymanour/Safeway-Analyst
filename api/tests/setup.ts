@@ -13,8 +13,6 @@ dotenv.config({
 	path: resolve(__dirname, '../.env.test')
 });
 
-console.log(resolve(__dirname, '../.env.test'));
-
 
 
 process.env.POSTGRESQL_CONNECTION_STRING = inject("testDatabaseUrl");
