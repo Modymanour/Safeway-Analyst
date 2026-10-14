@@ -12,7 +12,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
+        
+      - name: Get into api
+        run: cd api
+      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -20,6 +23,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
+        working-directory: ./api
         run: npm ci
 
       - name: Run tests
