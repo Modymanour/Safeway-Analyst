@@ -89,3 +89,82 @@ export const specificMonthsSchema = z.array(
         year: z.coerce.number().int(),
         month_number: z.coerce.number().int().min(1).max(12),
 }));
+
+/* -------------------------------------------------------------------------- */
+/* Issues                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export const createCategory = z.object({
+    slug: z.string(),
+    name: z.string(),
+    color: z.string().length(6),
+    description: z.string()
+});
+
+export const updateCategory = z.object({
+    slug: z.string().nullable(),
+    name: z.string().nullable(),
+    color: z.string().length(6).nullable(),
+    description: z.string().nullable()
+});
+
+export const searchCategories = z.object({
+    slug: z.string().nullable(),
+    name: z.string().nullable(),
+    color: z.string().length(6).nullable(),
+    description: z.string().nullable(),
+    start_date: z.coerce.date().nullable(),
+    end_date: z.coerce.date().nullable(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export const createIssue = z.object({
+    title: z.string(),
+    description: z.string(),
+    category_id: z.uuid(),
+    status: z.enum(["open", "planned" , "in_progress" , "completed" , "closed"]),
+    priority: z.number().min(1).max(5)
+});
+
+export const updateIssue = z.object({
+    title: z.string().nullable(),
+    description: z.string().nullable(),
+    category_id: z.uuid().nullable(),
+    status: z.enum(["open", "planned" , "in_progress" , "completed" , "closed"]).nullable(),
+    priority: z.number().min(1).max(5).nullable()
+});
+
+export const searchIssues = z.object({
+    title: z.string().nullable(),
+    description: z.string().nullable(),
+    created_by: z.uuid().nullable(),
+    category_id: z.uuid().nullable(),
+    status: z.enum(["open", "planned" , "in_progress" , "completed" , "closed"]).nullable(),
+    priority: z.number().min(1).max(5).nullable(),
+    start_date: z.coerce.date().nullable(),
+    end_date: z.coerce.date().nullable(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export const createIssueComment = z.object({
+    issue_id: z.uuid(),
+    body: z.string()
+});
+
+export const updateIssueComment = z.object({
+    comment_id: z.uuid(),
+    body: z.string()
+});
+
+export const searchIssuesComments = z.object({
+    issue_id: z.uuid().nullable(),
+    author_id: z.uuid().nullable(),
+    body: z.string().nullable(),
+    edited: nullableBoolean,
+    start_date: z.coerce.date().nullable(),
+    end_date: z.coerce.date().nullable(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(100).default(10),
+})

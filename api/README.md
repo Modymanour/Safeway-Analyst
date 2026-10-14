@@ -1,10 +1,10 @@
 # Safe Way Analytics API
 
-A TypeScript/Express backed by Postgresql to store user actions on https://safewaytransportation.it.com to provide web metrics & insights
+A TypeScript/Express backed by Postgresql to store user actions on https://safewaytransportation.it.com to provide web metrics & insights & discussions for users.
 
 ## API documentation
 
-With the API running locally, open Swagger UI at **<http://localhost:4000/api-docs/>**. The interactive OpenAPI page documents the visit and dashboard endpoints and lets you try requests. In Docker Compose, use the API host port configured by `API_PORT` (default `4000`), for example <http://localhost:4000/api-docs/>.
+With the API running locally, open Swagger UI at **<http://localhost:4000/api-docs/>** or if its in producion you can open **<https://safewaytransportation.it.com/api-docs/>**. The interactive OpenAPI page documents the visit and dashboard endpoints and lets you try requests. In Docker Compose, use the API host port configured by `API_PORT` (default `4000`), for example <http://localhost:4000/api-docs/>.
 
 The OpenAPI JSON is available at <http://localhost:4000/api-docs/openapi.json>. The specification is configured in `src/config/openapi.ts` and served by Express alongside Swagger UI.
 
@@ -27,19 +27,39 @@ The OpenAPI JSON is available at <http://localhost:4000/api-docs/openapi.json>. 
 | `POST` | `/api/dashboard/sign-out` | Revoke a refresh token |
 | `POST` | `/api/dashboard/create-user` | Create a user (admin permission required) |
 | `POST` | `/api/dashboard/create-admin` | Create an administrator (admin permission required) |
+| `PUT` | `/api/dashboard/change-role` | Change role of a user (used only by admins) |
+| `POST` | `/api/dashboard/verification-token` | Create a verification token |
+| `POST` | `/api/dashboard/verification-token/confirm` | Confirm a verification token |
+| `POST` | `/api/dashboard/password-reset-token` | Create a password token |
+| `POST` | `/api/dashboard/password-reset-token/confirm` | Confirm a password token |
+| `POST` | `/api/categories/create` | Create Category (for admins only)|
+| `PUT` | `/api/categories/update/:id` | Update Category (for admins only)|
+| `DELETE` | `/api/categories/delete/:id` | Delete Caegory (for admins only)|
+| `GET` | `/api/categories/get-by-name` | Get a Category by name|
+| `GET` | `/api/categories/search` | Search for categories based on given search filters |
+| `GET` | `/api/categories/get-all` | Get all categories|
+| `POST` | `/api/issues/create` | Create Issue|
+| `PUT` | `/api/issues/update/:id` | Update Issue (if and only if it belongs to the user, on the case of the admin they by pass the security)|
+| `DELETE` | `/api/issues/delete/:id` | Delete Issue (if and only if it belongs to the user, on the case of the admin they by pass the security)|
+| `GET` | `/api/issues/get-by-id/:id` | Get Issues by id|
+| `GET` | `/api/issues/search` | Search for Issues based on given search filters|
+| `GET` | `/api/issues/get-all` | Get all issues|
+| `POST` | `/api/issue-comments/create` | Create issue comment|
+| `PUT` | `/api/issue-comments/update/:id` | Update Issue comment (if and only if it belongs to the user, on the case of the admin they by pass the security)|
+| `DELETE` | `/api/issue-comments/delete/:id` | Delete issue comment (if and only if it belongs to the user, on the case of the admin they by pass the security)|
+| `GET` | `/api/issue-comments/get-issue-comment-by-id/:id` | Get issue comment by id|
+| `GET` | `/api/issue-comments/search` | Search for Issue comments based on given search parameters|
+| `GET` | `/api/issue-comments/get-all` | Get all issue comments|
 
-> **Security:** Dashboard analytics and account-list endpoints require a bearer access token. Account creation requires an administrator. The API seeds an initial administrator from `ADMIN_EMAIL` and `ADMIN_PASSWORD` on startup when that email is not yet registered. Use strong secrets and HTTPS outside local development.
-
-## Change log
-
-- Added interactive Swagger UI at `/api-docs/` and raw OpenAPI 3.0 JSON at `/api-docs/openapi.json`; the API logs the UI URL on startup.
-- Corrected the current-year, current-month, and get-all-users dashboard route paths so they are registered under `/api/dashboard/...`.
+You can access the schema of the requests for the apis from the swagger page. Moreover, you can head to /src/schem/index.ts to find all the zod schemas that are used to validate the input
 
 ## Requirements
 - Node.js
 - npm
 - PostgreSQL
 - Docker
+- Vite
+- Github Actions
 
 ## Database migrations
 
@@ -65,13 +85,16 @@ src/
 	config/                   Environment configuration
 	db/                       PostgreSQL pool and migration runner
 	migrations/               SQL schema and indexes
+	middleware/ 			  Contains the authentication, authorization and logging middlewares
+	types/					  Defining custom types such as customizing incomming request for authorization
 	repositories/             Database access modules
 	routes/                   Express router
 	controllers/              Request handlers
 	services/                 Application services
 	schemas/		          Zod schema for the APIs
-	errors/          	      Specified Errors for the system
-    loggers/                  Specified logging system
+	lib/					  library folder for helper functions
+	lib/errors/          	  Specified Errors for the system
+    lib/loggers/              Specified logging system
 ```
 
 ## Database Schema
@@ -91,6 +114,7 @@ Stores dashboard user accounts.
 | `email` | `TEXT` | Required and unique |
 | `password` | `TEXT` | Required |
 | `role` | `TEXT` | Required |
+| `verified` | `BOOLEAN` | Required; set by default to false |
 | `created_at` | `TIMESTAMP` | Defaults to the current time |
 | `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
 
@@ -120,6 +144,63 @@ Stores password-reset tokens associated with users.
 | `created_at` | `TIMESTAMP` | Defaults to the current time |
 | `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
 
+#### `verification_tokens`
+
+Verfies user account.
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key|
+| `user_id` | `UUID` | References `users.id`; Cascades |
+| `token` | `TEXT` | Required |
+| `expires_at` | `TIMESTAMP` | Required expiration time |
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+| `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
+
+#### `categories`
+
+Saves the categories for the issue service.
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key|
+| `slug` | `TEXT` | Required |
+| `name` | `TEXT` | Required |
+| `color` | `VARCHAR(7)` | Required and maximum of 7 chars |
+| `description` | `TEXT` | |	
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+| `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
+
+#### `issues`
+
+Entity for the issues of the dashboard
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key|
+| `title` | `VARCHAR(200)` | Required |
+| `created_by` | `UUID` | References users(id); Set to Null |
+| `category_id` | `UUID` | References categories(id) ; Restrict|
+| `status` | `TEXT` | must be in ('open', 'planned', 'in_progress', 'completed', 'closed') |
+| `priority` | `SMALLINT` | between 1 -> 5; 1 lowest & 5 highest |
+| `description` | `TEXT` | |	
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+| `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
+
+#### `issue_comments`
+
+Entity for the issues of the dashboard
+
+| Column | Type | Constraints / Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary key|
+| `author_id` | `UUID` | References users(id); Set to Null |
+| `issue_id` | `UUID` | References issues(id) ; Restrict|
+| `body` | `TEXT` | Required |	
+| `edited` | `BOOLEAN` | Required; set to false |
+| `created_at` | `TIMESTAMP` | Defaults to the current time |
+| `updated_at` | `TIMESTAMP` | Defaults to the current time and updates automatically |
+
 #### `user_visits_stats`
 
 Stores website visit and interaction statistics.
@@ -145,10 +226,6 @@ Stores website visit and interaction statistics.
 - `referral`
 - `social`
 - `direct`
-
-## Api Reference
-
-For full request and response details, use the [interactive Swagger documentation](http://localhost:4000/api-docs) while the API is running.
 
 ## Tests
 
@@ -177,3 +254,11 @@ npm test
 ```
 
 This will run all the tests in the system
+
+You could also run unit tests only using
+
+```bash
+npm test:unit
+```
+
+This testing approach uses the vitest.unit.config.ts rather than the vitest.config.ts

@@ -1,11 +1,19 @@
 import { inject } from "vitest";
 import { types } from "pg";
+import { resolve } from 'path';
+import dotenv from "dotenv";
 
 declare module "vitest" {
 	export interface ProvidedContext {
 		testDatabaseUrl: string;
 	}
 }
+
+dotenv.config({
+	path: resolve(__dirname, '../.env.test')
+});
+
+
 
 process.env.POSTGRESQL_CONNECTION_STRING = inject("testDatabaseUrl");
 

@@ -29,12 +29,12 @@ export class ControllerErrorHelper {
             return res.status(400).json({ error: "Validation error", msg: error.message });
         }
 
-        if (error.name === "UnauhtorizedError") {
-            return res.status(403).json({ error: "Unauthorized error", msg: error.message });
+        if (error.name === "UnauthorizedError") {
+            return res.status(401).json({ error: "Unauthorized error", msg: error.message });
         }
 
         if (error.name === "ForbiddenError") {
-            return res.status(401).json({ error: "Forbidden error", msg: error.message });
+            return res.status(403).json({ error: "Forbidden error", msg: error.message });
         }
 
         if (error.name === "ZodError") {
